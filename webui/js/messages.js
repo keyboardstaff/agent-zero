@@ -9,9 +9,96 @@ const chatHistory = document.getElementById("chat-history");
 
 let messageGroup = null;
 
+const IDENTITY_MAP = {
+  user: { label: "USER", color: "#4da1ff" },
+  agent: { label: "AGENT", color: "#a78bfa" },
+  response: { label: "AGENT", color: "#a78bfa" },
+  warning: { label: "WARNING", color: "#fbbf24" },
+  rate_limit: { label: "RATE LIMIT", color: "#fbbf24" },
+  error: { label: "ERROR", color: "#f87171" },
+  tool: { label: "TOOL", color: "#34d399" },
+  code_exe: { label: "CODE", color: "#06b6d4" },
+  browser: { label: "BROWSER", color: "#f97316" },
+  util: { label: "SYSTEM", color: "#94a3b8" },
+  info: { label: "INFO", color: "#94a3b8" },
+  hint: { label: "INFO", color: "#94a3b8" },
+  default: { label: "MESSAGE", color: "#94a3b8" },
+};
+
+function resolveIdentityMeta(type) {
+  return IDENTITY_MAP[type] || IDENTITY_MAP.default;
+}
+
+function sanitizeHeadingText(value) {
+  if (!value) return "";
+  return value
+    .replace(/icon:\/\/[\w-]+/gi, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function updateIdentityChip(container, type) {
+  if (!container) return;
+  const chip = container.querySelector(".msg-identity-chip");
+  if (!chip) return;
+  const meta = resolveIdentityMeta(type);
+  chip.textContent = meta.label;
+  chip.style.setProperty("--identity-color", meta.color);
+}
+
+function updateHeadingTimestamp(container, text) {
+  if (!container) return;
+  const metaWrap = container.querySelector(".msg-heading-meta");
+  const timeEl = container.querySelector(".msg-heading-time");
+  if (!metaWrap || !timeEl) return;
+  if (text) {
+    timeEl.textContent = text;
+    metaWrap.classList.add("is-visible");
+  } else {
+    timeEl.textContent = "";
+    metaWrap.classList.remove("is-visible");
+  }
+}
+
+function applyIdentityMetadata(container, type) {
+  if (!container) return;
+  const meta = resolveIdentityMeta(type);
+  container.dataset.identity = meta.label;
+  container.style.setProperty("--identity-color", meta.color);
+  updateIdentityChip(container, type);
+}
+
+function formatMetaTime(rawTime) {
+  if (!rawTime) return "";
+  const date = new Date(rawTime);
+  if (Number.isNaN(date.getTime())) return "";
+  const options = { month: "short", day: "2-digit", hour: "2-digit", minute: "2-digit" };
+  return date.toLocaleString(undefined, options);
+}
+
+function applyTemporalMetadata(container, meta = {}) {
+  if (!container) return;
+  const timestamp = meta.created_at || meta.timestamp;
+  const fallback = timestamp ? formatMetaTime(timestamp) : "";
+  if (fallback) {
+    container.dataset.timestamp = fallback;
+  } else {
+    container.dataset.timestamp = "";
+  }
+  updateHeadingTimestamp(container, fallback);
+}
+
 // Simplified implementation - no complex interactions needed
 
-export function setMessage(id, type, heading, content, temp, kvps = null) {
+export function setMessage(
+  id,
+  type,
+  heading,
+  content,
+  temp,
+  kvps = null,
+  meta = null,
+) {
   // Search for the existing message container by id
   let messageContainer = document.getElementById(`message-${id}`);
   let isNewMessage = false;
@@ -30,6 +117,10 @@ export function setMessage(id, type, heading, content, temp, kvps = null) {
 
   const handler = getHandler(type);
   handler(messageContainer, id, type, heading, content, temp, kvps);
+
+  applyIdentityMetadata(messageContainer, type);
+  applyTemporalMetadata(messageContainer, meta || {});
+  messageContainer.dataset.messageType = type;
 
   // If this is a new message, handle DOM insertion
   if (!document.getElementById(`message-${id}`)) {
@@ -142,16 +233,27 @@ export function _drawMessage(
       headingElement.classList.add("msg-heading");
       messageDiv.insertBefore(headingElement, messageDiv.firstChild);
     }
-
-    let headingH4 = headingElement.querySelector("h4");
-    if (!headingH4) {
-      headingH4 = document.createElement("h4");
-      headingElement.appendChild(headingH4);
+    if (!headingElement.querySelector(".msg-heading-primary")) {
+      headingElement.innerHTML = `
+        <div class="msg-heading-left">
+          <div class="msg-heading-primary">
+            <span class="msg-identity-chip"></span>
+            <h4></h4>
+          </div>
+          <div class="msg-heading-meta">
+            <span class="msg-heading-time"></span>
+          </div>
+        </div>
+        <div class="msg-heading-actions"></div>
+      `;
     }
-    headingH4.innerHTML = convertIcons(escapeHTML(heading));
+
+  const headingH4 = headingElement.querySelector("h4");
+  headingH4.textContent = sanitizeHeadingText(heading);
 
     if (resizeBtns) {
-      let minMaxBtn = headingElement.querySelector(".msg-min-max-btns");
+      const actionsHost = headingElement.querySelector(".msg-heading-actions");
+      let minMaxBtn = actionsHost.querySelector(".msg-min-max-btns");
       if (!minMaxBtn) {
         minMaxBtn = document.createElement("div");
         minMaxBtn.classList.add("msg-min-max-btns");
@@ -159,7 +261,7 @@ export function _drawMessage(
           <a href="#" class="msg-min-max-btn" @click.prevent="$store.messageResize.minimizeMessageClass('${mainClass}', $event)"><span class="material-symbols-outlined" x-text="$store.messageResize.getSetting('${mainClass}').minimized ? 'expand_content' : 'minimize'"></span></a>
           <a href="#" class="msg-min-max-btn" x-show="!$store.messageResize.getSetting('${mainClass}').minimized" @click.prevent="$store.messageResize.maximizeMessageClass('${mainClass}', $event)"><span class="material-symbols-outlined" x-text="$store.messageResize.getSetting('${mainClass}').maximized ? 'expand' : 'expand_all'"></span></a>
         `;
-        headingElement.appendChild(minMaxBtn);
+        actionsHost.appendChild(minMaxBtn);
       }
     }
   } else {
@@ -219,7 +321,8 @@ export function _drawMessage(
       }
 
       // Ensure action buttons exist
-      addActionButtonsToElement(bodyDiv);
+  addActionButtonsToElement(bodyDiv);
+  bodyDiv.dataset.hasActionButtons = "true";
       adjustMarkdownRender(contentDiv);
 
     } else {
@@ -244,7 +347,8 @@ export function _drawMessage(
       spanElement.innerHTML = convertHTML(content);
 
       // Ensure action buttons exist
-      addActionButtonsToElement(bodyDiv);
+  addActionButtonsToElement(bodyDiv);
+  bodyDiv.dataset.hasActionButtons = "true";
 
     }
   } else {
@@ -402,104 +506,35 @@ export function drawMessageUser(
   kvps = null,
   latex = false
 ) {
-  // Find existing message div or create new one
-  let messageDiv = messageContainer.querySelector(".message");
-  if (!messageDiv) {
-    messageDiv = document.createElement("div");
-    messageDiv.classList.add("message", "message-user");
-    messageContainer.appendChild(messageDiv);
-  } else {
-    // Ensure it has the correct classes if it already exists
-    messageDiv.className = "message message-user";
-  }
+  const attachments = kvps?.attachments ? [...kvps.attachments] : null;
+  const kvpsWithoutAttachments = kvps ? { ...kvps } : null;
+  if (kvpsWithoutAttachments) delete kvpsWithoutAttachments.attachments;
 
-  // Handle heading
-  let headingElement = messageDiv.querySelector(".msg-heading");
-  if (!headingElement) {
-    headingElement = document.createElement("h4");
-    headingElement.classList.add("msg-heading");
-    messageDiv.insertBefore(headingElement, messageDiv.firstChild);
-  }
-  headingElement.innerHTML = `${heading} <span class='icon material-symbols-outlined'>person</span>`;
+  const sanitizedKvps = kvpsWithoutAttachments && Object.keys(kvpsWithoutAttachments).length > 0
+    ? kvpsWithoutAttachments
+    : null;
 
-  // Handle content
-  let textDiv = messageDiv.querySelector(".message-text");
-  if (content && content.trim().length > 0) {
-    if (!textDiv) {
-      textDiv = document.createElement("div");
-      textDiv.classList.add("message-text");
-      messageDiv.appendChild(textDiv);
-    }
-    let spanElement = textDiv.querySelector("pre");
-    if (!spanElement) {
-      spanElement = document.createElement("pre");
-      textDiv.appendChild(spanElement);
-    }
-    spanElement.innerHTML = escapeHTML(content);
-    addActionButtonsToElement(textDiv);
-  } else {
-    if (textDiv) textDiv.remove();
-  }
+  const fallbackHeading = heading || resolveIdentityMeta(type).label;
 
-  // Handle attachments
-  let attachmentsContainer = messageDiv.querySelector(".attachments-container");
-  if (kvps && kvps.attachments && kvps.attachments.length > 0) {
-    if (!attachmentsContainer) {
-      attachmentsContainer = document.createElement("div");
-      attachmentsContainer.classList.add("attachments-container");
-      messageDiv.appendChild(attachmentsContainer);
-    }
-    // Important: Clear existing attachments to re-render, preventing duplicates on update
-    attachmentsContainer.innerHTML = ""; 
+  const messageDiv = _drawMessage(
+    messageContainer,
+    fallbackHeading,
+    content,
+    temp,
+    false,
+    "message-user",
+    sanitizedKvps,
+    ["message-user"],
+    [],
+    latex,
+    false
+  );
 
-    kvps.attachments.forEach((attachment) => {
-      const attachmentDiv = document.createElement("div");
-      attachmentDiv.classList.add("attachment-item");
+  const legacyAttachments = messageDiv.querySelector(".attachments-container");
+  if (legacyAttachments) legacyAttachments.remove();
 
-      const displayInfo = attachmentsStore.getAttachmentDisplayInfo(attachment);
-
-      if (displayInfo.isImage) {
-        attachmentDiv.classList.add("image-type");
-
-        const img = document.createElement("img");
-        img.src = displayInfo.previewUrl;
-        img.alt = displayInfo.filename;
-        img.classList.add("attachment-preview");
-        img.style.cursor = "pointer";
-
-        attachmentDiv.appendChild(img);
-      } else {
-        // Render as file tile with title and icon
-        attachmentDiv.classList.add("file-type");
-
-        // File icon
-        if (
-          displayInfo.previewUrl &&
-          displayInfo.previewUrl !== displayInfo.filename
-        ) {
-          const iconImg = document.createElement("img");
-          iconImg.src = displayInfo.previewUrl;
-          iconImg.alt = `${displayInfo.extension} file`;
-          iconImg.classList.add("file-icon");
-          attachmentDiv.appendChild(iconImg);
-        }
-
-        // File title
-        const fileTitle = document.createElement("div");
-        fileTitle.classList.add("file-title");
-        fileTitle.textContent = displayInfo.filename;
-
-        attachmentDiv.appendChild(fileTitle);
-      }
-
-      attachmentDiv.addEventListener("click", displayInfo.clickHandler);
-
-      attachmentsContainer.appendChild(attachmentDiv);
-    });
-  } else {
-    if (attachmentsContainer) attachmentsContainer.remove();
-  }
-  // The messageDiv is already appended or updated, no need to append again
+  const bodyDiv = messageDiv.querySelector(".message-body");
+  renderUserAttachments(bodyDiv, attachments);
 }
 
 export function drawMessageTool(
@@ -524,6 +559,64 @@ export function drawMessageTool(
     false,
     false
   );
+}
+
+function renderUserAttachments(bodyDiv, attachments) {
+  if (!bodyDiv) return;
+  let attachmentsContainer = bodyDiv.querySelector(".message-attachments");
+
+  if (!attachments || attachments.length === 0) {
+    if (attachmentsContainer) attachmentsContainer.remove();
+    return;
+  }
+
+  if (!attachmentsContainer) {
+    attachmentsContainer = document.createElement("div");
+    attachmentsContainer.classList.add("message-attachments");
+    bodyDiv.appendChild(attachmentsContainer);
+  }
+
+  attachmentsContainer.innerHTML = "";
+
+  attachments.forEach((attachment) => {
+    const displayInfo = attachmentsStore.getAttachmentDisplayInfo(attachment);
+    const attachmentDiv = document.createElement("div");
+    attachmentDiv.classList.add("message-attachment-item");
+
+    if (displayInfo.isImage) {
+      attachmentDiv.classList.add("image-type");
+      const img = document.createElement("img");
+      img.src = displayInfo.previewUrl;
+      img.alt = displayInfo.filename;
+      img.classList.add("message-attachment-img");
+      attachmentDiv.appendChild(img);
+    } else {
+      attachmentDiv.classList.add("file-type");
+
+      if (displayInfo.previewUrl && displayInfo.previewUrl !== displayInfo.filename) {
+        const iconImg = document.createElement("img");
+        iconImg.src = displayInfo.previewUrl;
+        iconImg.alt = `${displayInfo.extension} file`;
+        iconImg.classList.add("message-attachment-icon");
+        attachmentDiv.appendChild(iconImg);
+      }
+
+      const fileTitle = document.createElement("div");
+      fileTitle.classList.add("message-attachment-title");
+      fileTitle.textContent = displayInfo.filename;
+      attachmentDiv.appendChild(fileTitle);
+
+      if (displayInfo.extension) {
+        const pill = document.createElement("div");
+        pill.classList.add("message-attachment-ext");
+        pill.textContent = displayInfo.extension.toUpperCase();
+        attachmentDiv.appendChild(pill);
+      }
+    }
+
+    attachmentDiv.addEventListener("click", displayInfo.clickHandler);
+    attachmentsContainer.appendChild(attachmentDiv);
+  });
 }
 
 export function drawMessageCodeExe(

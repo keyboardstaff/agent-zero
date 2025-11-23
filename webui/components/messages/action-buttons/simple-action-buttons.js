@@ -30,13 +30,15 @@ export function addActionButtonsToElement(element) {
   // Skip if buttons already exist
   if (element.querySelector(".action-buttons")) return;
 
+  element.classList.add("action-button-host");
+
   // Create container with same styling as original
   const container = document.createElement("div");
-  container.className = "action-buttons";
+  container.className = "action-buttons message-action-buttons";
 
   // Copy button - matches original design
   const copyBtn = document.createElement("button");
-  copyBtn.className = "action-button copy-action";
+  copyBtn.className = "action-button message-action-button copy-action";
   copyBtn.setAttribute("aria-label", "Copy text");
   copyBtn.innerHTML =
     '<span class="material-symbols-outlined">content_copy</span>';
@@ -86,7 +88,7 @@ export function addActionButtonsToElement(element) {
 
   // Speak button - matches original design
   const speakBtn = document.createElement("button");
-  speakBtn.className = "action-button speak-action";
+  speakBtn.className = "action-button message-action-button speak-action";
   speakBtn.setAttribute("aria-label", "Speak text");
   speakBtn.innerHTML =
     '<span class="material-symbols-outlined">volume_up</span>';

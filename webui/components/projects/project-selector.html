@@ -13,7 +13,7 @@
             <div>
                 <template x-if="$store.chats.selectedContext.project?.name">
                     <button @click="open = !open" type="button" class="button project-dropdown-button">
-                        <span class="project-color-ball" :style="$store.chats.selectedContext.project.color ? { backgroundColor: $store.chats.selectedContext.project.color } : { border: '1px solid var(--color-border)' }"></span>
+                        <span class="project-color-ball" :style="$store.chats.selectedContext.project.color ? { backgroundColor: $store.chats.selectedContext.project.color } : { 'box-shadow': '0 0 0 1px var(--color-border) inset' }"></span>
                         <span x-text="$store.chats.selectedContext.project.title"></span>
                         <span class="icon material-symbols-outlined">arrow_drop_down</span>
                     </button>
@@ -34,7 +34,7 @@
                     <hr x-show=" $store.projects.projectList.length > 0" class="project-dropdown-divider">
                     <template x-for="project in $store.projects.projectList" :key="project.name">
                         <a href="#" @click.prevent="$store.projects.activateProject(project.name); open = false;" class="project-dropdown-item">
-                            <span class="project-color-ball" :style="project.color ? { backgroundColor: project.color } : { border: '1px solid var(--color-border)' }"></span>
+                            <span class="project-color-ball" :style="project.color ? { backgroundColor: project.color } : { 'box-shadow': '0 0 0 1px var(--color-border) inset' }"></span>
                             <span class="project-selector-item-text" x-text="project.title"></span>
                         </a>
                     </template>
@@ -53,9 +53,32 @@
     .project-dropdown-button {
         display: inline-flex;
         align-items: center;
-        gap: 0.3em;
-        padding-left: 0.5em;
-        padding-right: 0.5em;
+        gap: 0.4em;
+        padding: 0 1rem;
+        border: none;
+        border-radius: 12px;
+        background: linear-gradient(140deg, rgba(82, 125, 255, 0.22), rgba(15, 19, 42, 0.82));
+        color: rgba(235, 240, 255, 0.92);
+        font-weight: 600;
+        letter-spacing: 0.03em;
+        text-transform: uppercase;
+        box-shadow: 0 6px 16px rgba(3, 5, 12, 0.35);
+        backdrop-filter: blur(14px);
+        transition: all 0.25s ease;
+        min-height: 38px;
+    }
+    .project-dropdown-button .icon {
+        font-size: 1rem;
+        line-height: 1;
+        color: inherit;
+    }
+    .project-dropdown-button:hover,
+    .project-dropdown-button:focus-visible {
+        background: linear-gradient(130deg, rgba(77, 161, 255, 0.35), rgba(138, 92, 246, 0.6));
+        color: #fff;
+        transform: translateY(-1px);
+        outline: none;
+    box-shadow: 0 10px 22px rgba(7, 10, 24, 0.38);
     }
 
     .project-color-ball {
@@ -110,6 +133,18 @@
 
     .project-selector-item-text {
         margin-left: 0.5em;
+    }
+
+    .light-mode .project-dropdown-button {
+        background: linear-gradient(140deg, rgba(77, 161, 255, 0.4), rgba(245, 247, 255, 0.95));
+        color: rgba(15, 23, 42, 0.78);
+        box-shadow: 0 6px 14px rgba(15, 23, 42, 0.12);
+    }
+
+    .light-mode .project-dropdown-button:hover,
+    .light-mode .project-dropdown-button:focus-visible {
+        background: linear-gradient(130deg, rgba(77, 161, 255, 0.5), rgba(138, 92, 246, 0.5));
+        color: #0f172a;
     }
 </style>
 </html>

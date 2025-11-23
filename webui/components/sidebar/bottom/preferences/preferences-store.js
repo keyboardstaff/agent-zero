@@ -122,11 +122,7 @@ const model = {
   },
 
   _applyShowUtils(value) {
-    css.toggleCssProperty(
-      ".message-util",
-      "display",
-      value ? undefined : "none"
-    );
+    document.body.classList.toggle("show-utils", Boolean(value));
   },
 };
 

@@ -61,6 +61,13 @@
       /* Firefox */
       -ms-overflow-style: none;
       /* IE/Edge */
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .chats-config-list li+li {
+      margin-top: var(--spacing-xs);
     }
 
     /* Hide scrollbar for Chrome/Safari/Webkit */
@@ -74,22 +81,43 @@
       align-items: center;
       justify-content: space-between;
       width: 100%;
-      min-height: 40px;
-      border-radius: 4px;
-      transition: background-color 0.2s ease-in-out;
+      min-height: 44px;
+      border-radius: 12px;
       overflow: hidden;
       cursor: pointer;
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      background: linear-gradient(130deg, rgba(17, 24, 39, 0.8), rgba(15, 23, 42, 0.95));
+      box-shadow: 0 10px 20px rgba(3, 7, 18, 0.25);
+      transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease,
+        background 0.2s ease;
+    }
+
+    .chat-container::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      border: 1px solid rgba(118, 156, 255, 0.15);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
     }
 
     .chat-container:hover {
-      background-color: var(--color-background-hover);
+      transform: translate3d(0, -2px, 0);
+      border-color: rgba(118, 156, 255, 0.25);
+      box-shadow: 0 16px 34px rgba(3, 7, 18, 0.35);
+    }
+
+    .chat-container:hover::before {
+      opacity: 1;
     }
 
     .chat-list-button {
       display: flex;
       align-items: center;
       flex-grow: 1;
-      padding: 8px;
+      padding: 10px 12px;
       overflow: hidden;
       gap: 0.5em;
     }
@@ -108,30 +136,52 @@
       overflow: hidden;
       text-overflow: ellipsis;
       font-size: var(--font-size-small);
+      color: var(--color-text);
+      opacity: 0.85;
+      transition: opacity 0.2s ease;
     }
 
     .edit-button {
       flex-shrink: 0;
-      margin-right: 8px;
-      background-color: transparent;
-      border: 1px solid var(--color-border);
-      border-radius: 0.1875rem;
-      color: var(--color-primary);
+      margin-right: 10px;
+      border: none;
+      background: rgba(255, 255, 255, 0.08);
+      color: rgba(255, 255, 255, 0.85);
       cursor: pointer;
-      padding: 0.125rem 0.5rem;
-      transition: all var(--transition-speed) ease-in-out;
-      width: 2rem;
-      height: 2rem;
+      padding: 0.4rem;
+      border-radius: 50%;
+      width: 2.2rem;
+      height: 2.2rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.2s ease, background 0.2s ease;
     }
 
     .edit-button:hover {
-      border-color: var(--color-primary);
-      background-color: #32455690;
+      transform: scale(1.05);
+      background: rgba(255, 255, 255, 0.18);
     }
 
     .edit-button:active {
-      background-color: #131a2090;
-      color: rgba(253, 253, 253, 0.35);
+      transform: scale(0.95);
+      background: rgba(255, 255, 255, 0.25);
+    }
+
+    .light-mode .chats-list-container .edit-button {
+      background: rgba(15, 23, 42, 0.04);
+      color: rgba(15, 23, 42, 0.65);
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      box-shadow: none;
+    }
+
+    .light-mode .chats-list-container .edit-button:hover {
+      background: rgba(15, 23, 42, 0.08);
+      border-color: rgba(15, 23, 42, 0.16);
+    }
+
+    .light-mode .chats-list-container .edit-button:active {
+      background: rgba(15, 23, 42, 0.12);
     }
 
     .empty-list-message {
@@ -149,14 +199,36 @@
       color: var(--color-secondary-light);
     }
 
+    .light-mode .chat-container {
+      background: rgba(255, 255, 255, 0.9);
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      box-shadow: none;
+    }
+
     /* Selected chat accent */
     .chat-selected {
-      background-color: var(--color-background-hover);
+      border-color: rgba(118, 156, 255, 0.45);
+      background: linear-gradient(130deg, rgba(77, 161, 255, 0.15), rgba(138, 92, 246, 0.18));
+    }
+
+    .chat-selected::before {
+      opacity: 1;
     }
 
     .chat-selected .chat-name {
       font-size: var(--font-size-normal);
-      font-weight: bold;
+      font-weight: 600;
+      opacity: 1;
+    }
+
+
+    .light-mode .chat-container:hover {
+      border-color: rgba(77, 161, 255, 0.4);
+    }
+
+    .light-mode .chat-selected {
+      border-color: rgba(77, 161, 255, 0.6);
+      background: linear-gradient(130deg, rgba(77, 161, 255, 0.3), rgba(138, 92, 246, 0.2));
     }
 
     /* .chat-list-button.font-bold { position: relative; background-color: var(--color-border) 0.05; } */

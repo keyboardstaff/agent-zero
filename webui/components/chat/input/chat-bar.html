@@ -8,11 +8,6 @@
     <div id="input-section" x-data>
         <template x-if="$store.chatInput">
             <div style="width: 100%; display: contents;">
-                <!-- Attachment Preview section -->
-                <div>
-                    <x-component path="/chat/attachments/inputPreview.html" />
-                </div>
-
                 <x-component path="chat/input/chat-bar-input.html"></x-component>
                 <x-component path="chat/input/bottom-actions.html"></x-component>
             </div>
@@ -24,20 +19,40 @@
     /* Input section wrapper */
     #input-section {
       position: relative;
-      background-color: var(--color-panel);
-      display: -webkit-flex;
+      width: 100%;
+      background:
+        radial-gradient(circle at 20% 0%, rgba(90, 154, 255, 0.25), transparent 60%),
+        radial-gradient(circle at 80% -20%, rgba(166, 106, 255, 0.25), transparent 55%),
+        linear-gradient(180deg, rgba(4, 6, 16, 0.75), rgba(4, 6, 16, 0.95));
       display: flex;
       flex-direction: column;
-      gap: var(--spacing-xs);
-      padding: var(--spacing-sm) var(--spacing-md) var(--spacing-sm) 0.8rem;
-      align-items: start;
-      place-items: normal;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-sm) var(--spacing-lg) var(--spacing-xs);
+    border-top-left-radius: 28px;
+    border-top-right-radius: 28px;
+      box-shadow: 0 -24px 60px rgba(0, 0, 0, 0.45);
       flex-shrink: 0;
       z-index: 1001;
+      backdrop-filter: blur(30px);
+      -webkit-backdrop-filter: blur(30px);
+    }
+
+    .light-mode #input-section {
+      background:
+        radial-gradient(circle at 15% -40%, rgba(132, 164, 255, 0.18), transparent 60%),
+        radial-gradient(circle at 95% -60%, rgba(196, 161, 255, 0.16), transparent 55%),
+        linear-gradient(180deg, rgba(246, 249, 255, 0.95), rgba(234, 238, 248, 0.95));
+      box-shadow: 0 -10px 32px rgba(119, 140, 160, 0.16);
     }
 
     @media (max-width: 768px) {
       #input-section { align-items: normal !important; }
+    }
+
+    @media (max-width: 640px) {
+      #input-section {
+        padding: calc(var(--spacing-sm) * 0.6) var(--spacing-md) calc(var(--spacing-xs) * 0.6);
+      }
     }
     </style>
 </body>

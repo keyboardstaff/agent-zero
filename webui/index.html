@@ -156,8 +156,23 @@
             <div x-data x-show="$store.welcomeStore && $store.welcomeStore.isVisible">
                 <x-component path="welcome/welcome-screen.html"></x-component>
             </div>
-            <!-- Message History (actual messages) -->
-            <div id="chat-history" x-data x-show="!$store.welcomeStore || !$store.welcomeStore.isVisible"></div>
+            <!-- Message History (Conversation & Timeline views) -->
+            <div class="chat-view-shell" x-data x-show="!$store.welcomeStore || !$store.welcomeStore.isVisible">
+                <div class="chat-view-pane is-active" data-view-pane="conversation">
+                    <div id="chat-history"></div>
+                </div>
+                <div class="chat-view-pane" data-view-pane="timeline" hidden>
+                    <div id="timeline-view"></div>
+                </div>
+                <div class="chat-view-tabs" role="tablist">
+                    <button class="chat-view-tab" type="button" data-view-button="conversation" role="tab" aria-selected="true">
+                        Dialogue
+                    </button>
+                    <button class="chat-view-tab" type="button" data-view-button="timeline" role="tab" aria-selected="false">
+                        Timeline
+                    </button>
+                </div>
+            </div>
 
             <!-- NEW: Toast Stack Component -->
             <div style="position: relative; height: 0;">
@@ -175,8 +190,6 @@
             </div>
             <!-- Chat Input Area -->
             <div x-show="!$store.welcomeStore || !$store.welcomeStore.isVisible">
-                <!-- Progress Bar -->
-                <x-component path="chat/input/progress.html"></x-component>
                 <!-- Input Section -->
                 <x-component path="chat/input/chat-bar.html"></x-component>
             </div>

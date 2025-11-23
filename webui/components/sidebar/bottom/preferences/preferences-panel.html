@@ -70,8 +70,17 @@
 
   <style>
     .pref-section {
-    font-size: var(--font-size-small);
-    padding: 0.6rem var(--spacing-md) 0.05rem var(--spacing-md);
+      font-size: var(--font-size-small);
+      padding: 0.4rem 0 0.75rem 0;
+      border-radius: 16px;
+      border: none;
+      background: transparent;
+      box-shadow: none;
+    }
+    .light-mode .pref-section {
+      background: transparent;
+      border: none;
+      box-shadow: none;
     }
     /* Collapse transition */
     .pref-section [x-cloak] {
@@ -84,17 +93,23 @@
       gap: 6px;
       cursor: pointer;
       user-select: none;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-weight: 600;
+      color: var(--color-text-muted);
+      margin: 0;
     }
     .pref-section .config-list {
       list-style: none;
-      padding: 0.05rem 0;
+      padding: 0.35rem 0 0;
       margin: 0;
       display: flex;
       flex-direction: column;
-      gap: 1px;
+      gap: 0.35rem;
     }
     #preferences-collapse li {
-    opacity: 0.8;
+      opacity: 0.85;
+      padding: 0.1rem 0;
     }
     .pref-section .switch-label,
     .pref-section span {

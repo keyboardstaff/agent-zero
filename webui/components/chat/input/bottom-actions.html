@@ -67,15 +67,97 @@
   </div>
 
   <style>
-        .text-buttons-row { width: 100%; display: flex; padding-top: var(--spacing-xs); margin-left: var(--spacing-xs); }
-        .text-button { background-color: transparent; border: none; border-radius: 5px; color: var(--color-text); font-family: "Rubik", Arial, Helvetica, sans-serif; font-size: 0.6rem; padding: 6px var(--spacing-sm); cursor: pointer; opacity: 0.8; -webkit-transition: all 0.3s; transition: all 0.3s; display: flex; align-items: center; gap: var(--spacing-xs); }
-        .text-button:hover { opacity: 1; background-color: var(--color-secondary); border-radius: 4px; }
-        .text-button:active { opacity: 0.5; }
-        .text-button svg { width: 14px; height: 14px; flex-shrink: 0; }
-        .text-button p { margin-block: 0; }
+        .text-buttons-row {
+            width: 100%;
+            display: flex;
+            flex-wrap: nowrap;
+            gap: var(--spacing-xs);
+            padding: var(--spacing-xs) var(--spacing-sm) 0;
+            margin-left: 0;
+            overflow-x: auto;
+            scrollbar-width: none;
+        }
+        .text-buttons-row::-webkit-scrollbar { display: none; }
+        .text-button {
+            background: transparent;
+            border: none;
+            border-radius: 999px;
+            color: rgba(226, 232, 255, 0.8);
+            font-family: "Rubik", Arial, Helvetica, sans-serif;
+            font-size: 0.62rem;
+            padding: 0.4rem 0.95rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-xxs);
+            transition: all 0.25s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            box-shadow: none;
+            backdrop-filter: none;
+        }
+        .text-button svg {
+            width: 14px;
+            height: 14px;
+            flex-shrink: 0;
+            opacity: 0.92;
+            color: inherit;
+            fill: currentColor;
+            stroke: currentColor;
+        }
+        .text-button p { margin-block: 0; font-size: inherit; }
+        .text-button:hover,
+        .text-button:focus-visible {
+            background: linear-gradient(130deg, rgba(77, 161, 255, 0.25), rgba(138, 92, 246, 0.45));
+            color: #fff;
+            box-shadow: 0 14px 30px rgba(7, 10, 24, 0.55);
+            transform: translateY(-1px);
+            outline: none;
+            backdrop-filter: blur(16px);
+        }
+        .text-button:active { transform: scale(0.98); }
 
-        @media (max-width: 768px) { .text-buttons-row { width: 90%; display: flex; padding-top: var(--spacing-xs); gap: var(--spacing-xs); white-space: pre-wrap; } .text-button { font-size: 0.6rem; } .text-button svg { width: 18px; height: 18px; flex-shrink: 0; } }
-        @media (max-width: 640px) { .text-buttons-row { display: flex; width: 90%; padding-top: var(--spacing-xs); gap: var(--spacing-xs); white-space: pre-wrap; } .text-button { max-height: 25px; } .text-button p { display: none; } }
+        .light-mode .text-button {
+            background: transparent;
+            border: none;
+            color: rgba(15, 23, 42, 0.65);
+            box-shadow: none;
+        }
+        .light-mode .text-button svg {
+            opacity: 0.95;
+        }
+        .light-mode .text-button:hover,
+        .light-mode .text-button:focus-visible {
+            background: linear-gradient(130deg, rgba(77, 161, 255, 0.35), rgba(138, 92, 246, 0.35));
+            color: #0f172a;
+            box-shadow: 0 12px 24px rgba(15, 23, 42, 0.18);
+        }
+
+        @media (max-width: 768px) {
+            .text-buttons-row {
+                width: 100%;
+                padding: var(--spacing-xs) var(--spacing-xs) 0;
+            }
+            .text-button {
+                font-size: 0.6rem;
+            }
+            .text-button svg {
+                width: 18px;
+                height: 18px;
+            }
+        }
+        @media (max-width: 640px) {
+            .text-buttons-row {
+                width: 100%;
+                gap: calc(var(--spacing-xxs) * 1.6);
+                white-space: nowrap;
+            }
+            .text-button {
+                max-height: 26px;
+                padding: 0.35rem 0.75rem;
+            }
+            .text-button p { display: none; }
+        }
     </style>
 </body>
 </html>

@@ -10,6 +10,7 @@ import { store as inputStore } from "/components/chat/input/input-store.js";
 import { store as chatsStore } from "/components/sidebar/chats/chats-store.js";
 import { store as tasksStore } from "/components/sidebar/tasks/tasks-store.js";
 import { store as chatTopStore } from "/components/chat/top-section/chat-top-store.js";
+import { addTimelineEvent, resetTimeline } from "/js/timeline.js";
 
 globalThis.fetchApi = api.fetchApi; // TODO - backward compatibility for non-modular scripts, remove once refactored to alpine
 
@@ -24,7 +25,9 @@ let leftPanel,
   statusSection,
   progressBar,
   autoScrollSwitch,
-  timeDate;
+  timeDate,
+  conversationPane,
+  timelinePane;
 
 let autoScroll = true;
 let context = null;
@@ -61,9 +64,17 @@ export async function sendMessage() {
             : "User message";
 
         // Render user message with attachments
-        setMessage(messageId, "user", heading, message, false, {
-          // attachments: attachmentsWithUrls, // skip here, let the backend properly log them
-        });
+        setMessage(
+          messageId,
+          "user",
+          heading,
+          message,
+          false,
+          {
+            // attachments: attachmentsWithUrls, // skip here, let the backend properly log them
+          },
+          { created_at: new Date().toISOString() },
+        );
 
         // sleep one frame to render the message before upload starts - better UX
         sleep(0);
@@ -184,12 +195,34 @@ async function updateUserTime() {
 updateUserTime();
 setInterval(updateUserTime, 1000);
 
-function setMessage(id, type, heading, content, temp, kvps = null) {
-  const result = msgs.setMessage(id, type, heading, content, temp, kvps);
-  const chatHistoryEl = document.getElementById("chat-history");
-  if (preferencesStore.autoScroll && chatHistoryEl) {
-    chatHistoryEl.scrollTop = chatHistoryEl.scrollHeight;
+function getConversationScrollContainer() {
+  return (
+    conversationPane ||
+    document.querySelector('.chat-view-pane[data-view-pane="conversation"]') ||
+    document.getElementById("chat-history")
+  );
+}
+
+function scrollContainerToBottom(element) {
+  if (!element) return;
+  const targetTop = element.scrollHeight;
+  if (typeof element.scrollTo === "function") {
+    element.scrollTo({ top: targetTop, behavior: "smooth" });
+  } else {
+    element.scrollTop = targetTop;
   }
+}
+
+function autoScrollConversationView() {
+  if (!preferencesStore.autoScroll) return;
+  const scroller = getConversationScrollContainer();
+  if (!scroller) return;
+  requestAnimationFrame(() => scrollContainerToBottom(scroller));
+}
+
+function setMessage(id, type, heading, content, temp, kvps = null, meta = null) {
+  const result = msgs.setMessage(id, type, heading, content, temp, kvps, meta);
+  autoScrollConversationView();
   return result;
 }
 
@@ -292,6 +325,7 @@ export async function poll() {
     if (lastLogGuid != response.log_guid) {
       const chatHistoryEl = document.getElementById("chat-history");
       if (chatHistoryEl) chatHistoryEl.innerHTML = "";
+      resetTimeline();
       lastLogVersion = 0;
       lastLogGuid = response.log_guid;
       await poll();
@@ -302,14 +336,19 @@ export async function poll() {
       updated = true;
       for (const log of response.logs) {
         const messageId = log.id || log.no; // Use log.id if available
+        const meta = {
+          created_at: log.created_at || log.timestamp || null,
+        };
         setMessage(
           messageId,
           log.type,
           log.heading,
           log.content,
           log.temp,
-          log.kvps
+          log.kvps,
+          meta,
         );
+        addTimelineEvent(log);
       }
       afterMessagesUpdate(response.logs);
     }
@@ -556,20 +595,53 @@ function scrollChanged(isAtBottom) {
   preferencesStore.autoScroll = isAtBottom;
 }
 
-export function updateAfterScroll() {
+export function updateAfterScroll(event) {
   // const toleranceEm = 1; // Tolerance in em units
   // const tolerancePx = toleranceEm * parseFloat(getComputedStyle(document.documentElement).fontSize); // Convert em to pixels
   const tolerancePx = 10;
-  const chatHistory = document.getElementById("chat-history");
-  if (!chatHistory) return;
+  const scroller =
+    event?.currentTarget || event?.target || getConversationScrollContainer();
+  if (!scroller) return;
 
   const isAtBottom =
-    chatHistory.scrollHeight - chatHistory.scrollTop <=
-    chatHistory.clientHeight + tolerancePx;
+    scroller.scrollHeight - scroller.scrollTop <= scroller.clientHeight + tolerancePx;
 
   scrollChanged(isAtBottom);
 }
 globalThis.updateAfterScroll = updateAfterScroll;
+
+function initViewToggle() {
+  const root = document.querySelector(".chat-view-shell");
+  if (!root) return;
+  const panes = document.querySelectorAll("[data-view-pane]");
+  const buttons = document.querySelectorAll("[data-view-button]");
+  let active = "conversation";
+
+  function setActive(view) {
+    active = view;
+    root.dataset.activeView = view;
+    panes.forEach((pane) => {
+      const isActive = pane.dataset.viewPane === view;
+      pane.classList.toggle("is-active", isActive);
+      pane.hidden = !isActive;
+    });
+    buttons.forEach((btn) => {
+      const isCurrent = btn.dataset.viewButton === view;
+      btn.classList.toggle("is-active", isCurrent);
+      btn.setAttribute("aria-pressed", String(isCurrent));
+    });
+  }
+
+  buttons.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const target = btn.dataset.viewButton;
+      if (!target || target === active) return;
+      setActive(target);
+    });
+  });
+
+  setActive(active);
+}
 
 // setInterval(poll, 250);
 
@@ -612,12 +684,16 @@ document.addEventListener("DOMContentLoaded", function () {
   progressBar = document.getElementById("progress-bar");
   autoScrollSwitch = document.getElementById("auto-scroll-switch");
   timeDate = document.getElementById("time-date-container");
+  conversationPane = document.querySelector('[data-view-pane="conversation"]');
+  timelinePane = document.querySelector('[data-view-pane="timeline"]');
 
   // Sidebar and input event listeners are now handled by their respective stores
 
-  if (chatHistory) {
-    chatHistory.addEventListener("scroll", updateAfterScroll);
-  }
+  const conversationScrollTarget = conversationPane || chatHistory;
+  conversationScrollTarget?.addEventListener("scroll", updateAfterScroll);
+  timelinePane?.addEventListener("scroll", updateAfterScroll);
+
+  initViewToggle();
 
   // Start polling for updates
   startPolling();
