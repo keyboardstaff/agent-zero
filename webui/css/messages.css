@@ -337,6 +337,24 @@
   min-width: 0;
 }
 
+.message-container[data-message-type="user"] .msg-heading h4,
+.message-container[data-message-type="agent"] .msg-heading h4,
+.message-container[data-message-type="response"] .msg-heading h4 {
+  display: none;
+}
+
+.message-container[data-message-type="user"] .msg-heading-primary,
+.message-container[data-message-type="agent"] .msg-heading-primary,
+.message-container[data-message-type="response"] .msg-heading-primary {
+  gap: 0.4rem;
+}
+
+.message-container[data-message-type="user"] .msg-heading-actions,
+.message-container[data-message-type="agent"] .msg-heading-actions,
+.message-container[data-message-type="response"] .msg-heading-actions {
+  margin-left: auto;
+}
+
 .msg-heading-actions {
   display: flex;
   gap: 0.35rem;

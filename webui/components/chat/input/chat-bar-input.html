@@ -10,7 +10,9 @@
 <body>
     <div class="chat-input-card">
         <div class="chat-progress-row">
-            <x-component path="chat/input/progress.html"></x-component>
+            <div class="chat-progress-shell">
+                <x-component path="chat/input/progress.html"></x-component>
+            </div>
         </div>
         <div class="chat-input-body">
             <div class="input-row">
@@ -82,7 +84,25 @@
     .chat-progress-row {
         width: 100%;
         margin: 0;
-        padding: 0 calc(var(--spacing-sm) * 0.6) calc(var(--spacing-xs) * 0.3);
+        padding: 0 calc(var(--spacing-sm) * 0.3) calc(var(--spacing-xs) * 0.3);
+    }
+
+    .chat-progress-shell {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        border-radius: 18px;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        background: rgba(7, 10, 24, 0.72);
+        padding: 0.4rem 0.6rem 0.5rem;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    }
+
+    .light-mode .chat-progress-shell {
+        background: rgba(249, 251, 255, 0.9);
+        border-color: rgba(188, 198, 220, 0.45);
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
     }
 
     .light-mode .chat-input-card {
@@ -350,7 +370,12 @@
         }
 
         .chat-progress-row {
-            padding: 0 calc(var(--spacing-xs) * 0.5) calc(var(--spacing-xs) * 0.4);
+            padding: 0 calc(var(--spacing-xs) * 0.4) calc(var(--spacing-xs) * 0.35);
+        }
+
+        .chat-progress-shell {
+            padding: 0.35rem 0.45rem 0.4rem;
+            border-radius: 14px;
         }
 
         .input-row {

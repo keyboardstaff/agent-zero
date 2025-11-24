@@ -7,6 +7,11 @@ let toolbarRef = null;
 let resizeListenerBound = false;
 let clearanceFrame = null;
 
+function dispatchExecutionPanelEvent(name, detail = {}) {
+	if (typeof window === "undefined") return;
+	window.dispatchEvent(new CustomEvent(name, { detail }));
+}
+
 const TYPE_INFO = {
 	user: { label: "User", color: "#3b82f6", column: "dialogue" },
 	agent: { label: "Agent", color: "#8b5cf6", column: "dialogue" },
@@ -106,9 +111,9 @@ function updateToolbarClearance() {
 
 function autoScrollTimelineView() {
 	if (!preferencesStore.autoScroll) return;
-	const pane = document.querySelector('.chat-view-pane[data-view-pane="timeline"]');
+	const scrollHost = document.querySelector("[data-execution-scroll]");
 	const timelineView = document.getElementById("timeline-view");
-	const target = pane || timelineView;
+	const target = scrollHost || timelineView;
 	if (!target) return;
 	requestAnimationFrame(() => {
 		const top = target.scrollHeight;
@@ -360,6 +365,7 @@ export function addTimelineEvent(log) {
 		<div class="timeline-entry__wrapper">
 			<span class="timeline-entry__connector" aria-hidden="true"></span>
 			<div class="timeline-entry__card">
+				<span class="timeline-entry__accent" aria-hidden="true"></span>
 				<div class="timeline-entry__header">
 					<span class="timeline-entry__label">${info.label}</span>
 					<span class="timeline-entry__time">${timestamp}</span>
@@ -371,6 +377,7 @@ export function addTimelineEvent(log) {
 	`;
 	applyFilters();
 	autoScrollTimelineView();
+	dispatchExecutionPanelEvent("execution-panel:update", { log });
 }
 
 export function resetTimeline() {
@@ -378,4 +385,5 @@ export function resetTimeline() {
 	if (track) {
 		track.querySelectorAll(".timeline-entry").forEach((entry) => entry.remove());
 	}
+	dispatchExecutionPanelEvent("execution-panel:reset");
 }

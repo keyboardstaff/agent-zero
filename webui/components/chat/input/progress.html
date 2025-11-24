@@ -5,32 +5,87 @@
     </script>
 </head>
 <body>
-    <div id="progress-bar-box">
-        <h4 id="progress-bar-h">
-            <span id="progress-bar-i">|></span><span id="progress-bar"></span>
-        </h4>
-        <h4 id="progress-bar-stop-speech" x-data x-cloak x-show="$store.speech.isSpeaking">
-            <span id="stop-speech" @click="$store.speech.stop()" style="cursor: pointer">Stop Speech</span>
-        </h4>
+    <div class="execution-panel execution-panel--inline" x-data="executionPanel()" :class="{'is-open': isOpen}">
+        <div id="progress-bar-box"
+             role="button"
+             tabindex="0"
+             :aria-expanded="isOpen"
+             @click="togglePanel"
+             @keydown.enter.prevent="togglePanel"
+             @keydown.space.prevent="togglePanel">
+            <div class="progress-bar-left">
+                <h4 id="progress-bar-h">
+                    <span id="progress-bar-i">|></span><span id="progress-bar"></span>
+                </h4>
+                <h4 id="progress-bar-stop-speech" x-data x-cloak x-show="$store.speech.isSpeaking">
+                    <span id="stop-speech" @click.stop="$store.speech.stop()" style="cursor: pointer">Stop Speech</span>
+                </h4>
+            </div>
+            <div class="execution-panel__meta execution-panel__meta--inline">
+                <span class="execution-panel__status-pill" :class="statusClass" x-text="statusText"></span>
+                <div class="execution-panel__chevron-button" aria-hidden="true">
+                    <svg class="execution-panel__chevron" :class="{'is-open': isOpen}" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="6 9 12 15 18 9" />
+                    </svg>
+                </div>
+            </div>
+        </div>
+        <div class="execution-panel__body" x-ref="panelBody" x-cloak :style="panelBodyStyle" :aria-hidden="!isOpen">
+            <div class="execution-panel__body-content" x-ref="panelContent">
+                <div class="execution-panel__scroll" x-ref="timelineScroll" data-execution-scroll>
+                    <div id="timeline-view"></div>
+                </div>
+            </div>
+        </div>
     </div>
 
 
     <style>
-    #progress-bar-box {
-        width: 100%;
-        background: transparent;
-        border: none;
-        padding: 0.1rem 0.2rem;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: calc(var(--spacing-xs) * 0.75);
-        min-height: 1.8rem;
-        box-shadow: none;
-    }
-    #progress-bar-box h4 { margin: 0 0.6em 0 0; font-size: 0.8rem; }
-    #progress-bar-h { color: var(--color-primary); display: flex; align-items: center; justify-content: flex-start; height: 1.1em; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; font-weight: normal; }
-    #progress-bar-i { font-weight: bold; padding-right: 0.5em; color: var(--color-secondary); }
+        #progress-bar-box {
+                width: 100%;
+                background: transparent;
+                border: none;
+                padding: 0.15rem 0.2rem;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                gap: calc(var(--spacing-xs) * 0.75);
+                min-height: 1.9rem;
+                box-shadow: none;
+            cursor: pointer;
+            border-radius: 12px;
+        }
+        #progress-bar-box:focus-visible {
+            outline: 2px solid rgba(118, 156, 255, 0.45);
+            outline-offset: 2px;
+        }
+        .progress-bar-left {
+                display: flex;
+                align-items: center;
+                gap: 0.65rem;
+                flex: 1;
+                min-width: 0;
+        }
+        #progress-bar-box h4 { margin: 0; font-size: 0.8rem; }
+        #progress-bar-h { color: var(--color-primary); display: flex; align-items: center; justify-content: flex-start; height: 1.1em; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; font-weight: normal; }
+        #progress-bar-i { font-weight: bold; padding-right: 0.5em; color: var(--color-secondary); }
+        .execution-panel__meta--inline {
+                display: inline-flex;
+                align-items: center;
+                gap: 0.35rem;
+        }
+        .execution-panel__chevron-button {
+                width: 1.9rem;
+                height: 1.9rem;
+                border-radius: 999px;
+                border: 1px solid rgba(148, 163, 184, 0.22);
+                background: rgba(15, 23, 42, 0.45);
+                color: inherit;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+            pointer-events: none;
+        }
     .shiny-text { background: linear-gradient(to right, var(--color-primary-dark) 20%, var(--color-text) 40%, var(--color-text) 60%, var(--color-primary-dark) 60%); background-size: 200% auto; color: transparent; -webkit-background-clip: text; background-clip: text; animation: shine 1s linear infinite; }
     @keyframes shine { to { background-position: -200% center; } }
     .light-mode #progress-bar-i { color: var(--color-border-dark); opacity: 0.5; }
@@ -39,7 +94,131 @@
         box-shadow: none;
         border: none;
     }
+        .light-mode .execution-panel__chevron-button {
+            background: rgba(243, 246, 255, 0.9);
+            border-color: rgba(188, 198, 220, 0.5);
+            color: rgba(31, 35, 53, 0.65);
+        }
     </style>
 </body>
 </html>
+
+<script>
+        (function () {
+            if (window.executionPanel) return;
+            window.executionPanel = function () {
+                return {
+                    isOpen: false,
+                    logCount: 0,
+                    latestLog: null,
+                    status: "idle",
+                    panelHeight: 0,
+                    heightFrame: null,
+                    updateListener: null,
+                    resetListener: null,
+                    get panelBodyStyle() {
+                        const targetHeight = this.isOpen ? this.panelHeight : 0;
+                        return {
+                            "--panel-height": `${Math.max(targetHeight, 0)}px`,
+                        };
+                    },
+                    init() {
+                        this.bindExecutionEvents();
+                        this.schedulePanelHeightUpdate();
+                    },
+                    destroy() {
+                        this.cancelHeightFrame();
+                        this.unbindExecutionEvents();
+                    },
+                    bindExecutionEvents() {
+                        this.updateListener = (event) => {
+                            const log = event?.detail?.log;
+                            if (!log) return;
+                            this.logCount += 1;
+                            this.latestLog = log;
+                            this.status = this.resolveStatus(log.type);
+                            this.schedulePanelHeightUpdate();
+                            if (this.isOpen) {
+                                this.$nextTick(() => this.scrollToEnd());
+                            }
+                        };
+                        this.resetListener = () => {
+                            this.logCount = 0;
+                            this.latestLog = null;
+                            this.status = "idle";
+                            this.schedulePanelHeightUpdate();
+                        };
+                        window.addEventListener("execution-panel:update", this.updateListener);
+                        window.addEventListener("execution-panel:reset", this.resetListener);
+                    },
+                    unbindExecutionEvents() {
+                        if (this.updateListener) {
+                            window.removeEventListener("execution-panel:update", this.updateListener);
+                            this.updateListener = null;
+                        }
+                        if (this.resetListener) {
+                            window.removeEventListener("execution-panel:reset", this.resetListener);
+                            this.resetListener = null;
+                        }
+                    },
+                    togglePanel() {
+                        this.isOpen = !this.isOpen;
+                        this.schedulePanelHeightUpdate();
+                        if (this.isOpen) {
+                            this.$nextTick(() => this.scrollToEnd());
+                        }
+                    },
+                    schedulePanelHeightUpdate() {
+                        this.cancelHeightFrame();
+                        this.heightFrame = requestAnimationFrame(() => {
+                            this.heightFrame = null;
+                            this.updatePanelHeight();
+                        });
+                    },
+                    cancelHeightFrame() {
+                        if (this.heightFrame) {
+                            cancelAnimationFrame(this.heightFrame);
+                            this.heightFrame = null;
+                        }
+                    },
+                    updatePanelHeight() {
+                        const content = this.$refs.panelContent;
+                        if (!content) return;
+                        const measured = content.scrollHeight;
+                        this.panelHeight = this.isOpen ? measured : 0;
+                    },
+                    scrollToEnd() {
+                        const target = this.$refs.timelineScroll;
+                        if (!target) return;
+                        target.scrollTo({ top: target.scrollHeight, behavior: "smooth" });
+                        this.schedulePanelHeightUpdate();
+                    },
+                    resolveStatus(type) {
+                        if (["error", "warning", "rate_limit"].includes(type)) return "alert";
+                        if (type === "response") return "complete";
+                        if (type === "user") return "pending";
+                        return "running";
+                    },
+                    get statusText() {
+                        switch (this.status) {
+                            case "running":
+                                return "Running";
+                            case "pending":
+                                return "Awaiting input";
+                            case "complete":
+                                return "Complete";
+                            case "alert":
+                                return "Attention";
+                            case "idle":
+                            default:
+                                return "Idle";
+                        }
+                    },
+                    get statusClass() {
+                        return `status-${this.status}`;
+                    },
+                };
+            };
+        })();
+    </script>
 

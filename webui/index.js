@@ -26,11 +26,16 @@ let leftPanel,
   progressBar,
   autoScrollSwitch,
   timeDate,
-  conversationPane,
-  timelinePane;
+  conversationPane;
 
 let autoScroll = true;
 let context = null;
+const DIALOGUE_MESSAGE_TYPES = new Set(["user", "response", "error"]);
+
+function shouldRenderInConversation(type) {
+  if (!type) return true;
+  return DIALOGUE_MESSAGE_TYPES.has(type);
+}
 globalThis.resetCounter = 0; // Used by stores and getChatBasedId
 let skipOneSpeech = false;
 
@@ -339,15 +344,17 @@ export async function poll() {
         const meta = {
           created_at: log.created_at || log.timestamp || null,
         };
-        setMessage(
-          messageId,
-          log.type,
-          log.heading,
-          log.content,
-          log.temp,
-          log.kvps,
-          meta,
-        );
+        if (shouldRenderInConversation(log.type)) {
+          setMessage(
+            messageId,
+            log.type,
+            log.heading,
+            log.content,
+            log.temp,
+            log.kvps,
+            meta,
+          );
+        }
         addTimelineEvent(log);
       }
       afterMessagesUpdate(response.logs);
@@ -610,39 +617,6 @@ export function updateAfterScroll(event) {
 }
 globalThis.updateAfterScroll = updateAfterScroll;
 
-function initViewToggle() {
-  const root = document.querySelector(".chat-view-shell");
-  if (!root) return;
-  const panes = document.querySelectorAll("[data-view-pane]");
-  const buttons = document.querySelectorAll("[data-view-button]");
-  let active = "conversation";
-
-  function setActive(view) {
-    active = view;
-    root.dataset.activeView = view;
-    panes.forEach((pane) => {
-      const isActive = pane.dataset.viewPane === view;
-      pane.classList.toggle("is-active", isActive);
-      pane.hidden = !isActive;
-    });
-    buttons.forEach((btn) => {
-      const isCurrent = btn.dataset.viewButton === view;
-      btn.classList.toggle("is-active", isCurrent);
-      btn.setAttribute("aria-pressed", String(isCurrent));
-    });
-  }
-
-  buttons.forEach((btn) => {
-    btn.addEventListener("click", () => {
-      const target = btn.dataset.viewButton;
-      if (!target || target === active) return;
-      setActive(target);
-    });
-  });
-
-  setActive(active);
-}
-
 // setInterval(poll, 250);
 
 async function startPolling() {
@@ -685,15 +659,11 @@ document.addEventListener("DOMContentLoaded", function () {
   autoScrollSwitch = document.getElementById("auto-scroll-switch");
   timeDate = document.getElementById("time-date-container");
   conversationPane = document.querySelector('[data-view-pane="conversation"]');
-  timelinePane = document.querySelector('[data-view-pane="timeline"]');
 
   // Sidebar and input event listeners are now handled by their respective stores
 
   const conversationScrollTarget = conversationPane || chatHistory;
   conversationScrollTarget?.addEventListener("scroll", updateAfterScroll);
-  timelinePane?.addEventListener("scroll", updateAfterScroll);
-
-  initViewToggle();
 
   // Start polling for updates
   startPolling();
