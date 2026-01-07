@@ -9,7 +9,7 @@
   overflow-y: scroll;
   overflow-x: hidden;
   scroll-behavior: auto !important; /* avoid infinite scrolling! */
-  padding: var(--spacing-md) 10em 0 !important;  
+  padding: var(--spacing-md) 5em 0 !important;  
   -webkit-transition: all 0.3s ease;
   transition: all 0.3s ease;
   scrollbar-width: thin;
@@ -96,8 +96,7 @@
 .message-user .message-text pre {
   font-family: var(--font-family-main);
   font-weight: 500;
-  font-size: medium;
-  color: azure;
+  
 }
 
 .light-mode .message-user .message-text pre {
@@ -514,6 +513,7 @@
 
 .message-agent-response .msg-content {
   font-size: var(--font-size-smaller);
+  font-size: medium;
 }
 
 .message-agent-response .msg-content img {
