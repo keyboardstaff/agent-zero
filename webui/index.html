@@ -116,17 +116,29 @@
     <!-- Drag and Drop Overlay Component -->
     <x-component path="chat/attachments/dragDropOverlay.html"></x-component>
 
-    <!-- Register Service Worker for offline support and caching -->
+    <!-- Register Service Worker for offline support and caching (PWA + non-local only) -->
     <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('js/sw.js').then(registration => {
-                    console.log('SW registered: ', registration);
-                }).catch(registrationError => {
-                    console.log('SW registration failed: ', registrationError);
+        (function() {
+            const isPWA = window.matchMedia('(display-mode: standalone)').matches || 
+                          window.navigator.standalone === true;
+            const host = window.location.hostname;
+            const isLocal = host === 'localhost' || host === '127.0.0.1' || host === '0.0.0.0';
+            
+            if ('serviceWorker' in navigator && isPWA && !isLocal) {
+                window.addEventListener('load', () => {
+                    navigator.serviceWorker.register('js/sw.js').then(reg => {
+                        console.log('SW registered:', reg.scope);
+                    }).catch(err => {
+                        console.log('SW registration failed:', err);
+                    });
                 });
-            });
-        }
+            } else if ('serviceWorker' in navigator && isLocal) {
+                // Unregister SW in local dev to avoid stale cache issues
+                navigator.serviceWorker.getRegistrations().then(regs => {
+                    regs.forEach(reg => reg.unregister());
+                });
+            }
+        })();
     </script>
 
 </body>
