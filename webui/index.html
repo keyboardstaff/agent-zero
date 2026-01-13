@@ -119,8 +119,19 @@
     <!-- Register Service Worker for offline support and caching (PWA + non-local only) -->
     <script>
         (function() {
-            const isPWA = window.matchMedia('(display-mode: standalone)').matches || 
-                          window.navigator.standalone === true;
+            // Comprehensive PWA detection for all major browsers
+            // Chrome/Edge: standalone, Firefox: standalone or minimal-ui
+            // Safari iOS: navigator.standalone, Samsung: standalone
+            const displayModes = ['standalone', 'minimal-ui', 'fullscreen', 'window-controls-overlay'];
+            const isPWAByMedia = displayModes.some(mode => 
+                window.matchMedia(`(display-mode: ${mode})`).matches
+            );
+            const isPWABySafari = window.navigator.standalone === true;
+            // Additional check: launched from home screen (referrer is empty in PWA)
+            const isPWAByReferrer = document.referrer === '' && !window.opener;
+            // Chrome on Android sets display-mode correctly, but we also check for app-like context
+            const isPWA = isPWAByMedia || isPWABySafari;
+            
             const host = window.location.hostname;
             const isLocal = host === 'localhost' || host === '127.0.0.1' || host === '0.0.0.0';
             
