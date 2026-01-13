@@ -103,11 +103,12 @@ function createModalElement(path) {
 }
 
 // Function to open modal with content from URL
-export function openModal(modalPath) {
+export function openModal(modalPath, options = {}) {
   return new Promise((resolve) => {
     try {
       // Create new modal instance
       const modal = createModalElement(modalPath);
+      modal.beforeClose = options.beforeClose || null;
 
       new MutationObserver(
         (_, o) =>
@@ -171,7 +172,7 @@ export function openModal(modalPath) {
 }
 
 // Function to close modal
-export function closeModal(modalPath = null) {
+export async function closeModal(modalPath = null) {
   if (modalStack.length === 0) return;
 
   let modalIndex = modalStack.length - 1; // Default to last modal
@@ -181,14 +182,26 @@ export function closeModal(modalPath = null) {
     // Find the modal with the specified name in the stack
     modalIndex = modalStack.findIndex((modal) => modal.path === modalPath);
     if (modalIndex === -1) return; // Modal not found in stack
-
-    // Get the modal from stack at the found index
     modal = modalStack[modalIndex];
-    // Remove the modal from stack
+  } else {
+    modal = modalStack[modalStack.length - 1];
+  }
+
+  // Check beforeClose callback
+  if (modal.beforeClose) {
+    try {
+      const canClose = await modal.beforeClose();
+      if (canClose === false) return; // Prevent close
+    } catch (e) {
+      console.error("beforeClose error:", e);
+    }
+  }
+
+  // Remove from stack
+  if (modalPath) {
     modalStack.splice(modalIndex, 1);
   } else {
-    // Just remove the last modal
-    modal = modalStack.pop();
+    modalStack.pop();
   }
 
   // Remove modal-specific styles and scripts immediately

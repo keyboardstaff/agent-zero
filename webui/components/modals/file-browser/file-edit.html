@@ -1,0 +1,161 @@
+<html>
+<head>
+  <title>Edit File</title>
+</head>
+<body>
+  <div x-data>
+    <template x-if="$store.fileBrowser">
+      <div class="file-edit-root">
+        
+        <!-- Loading State -->
+        <template x-if="$store.fileBrowser.edit.isLoading">
+          <div class="loading-state">
+            <div class="loading-spinner"></div>
+            <p>Loading file...</p>
+          </div>
+        </template>
+
+        <!-- File Name Input (always show when not loading) -->
+        <template x-if="!$store.fileBrowser.edit.isLoading">
+          <div class="file-name-input">
+            <label class="file-name-label">File name:</label>
+            <input 
+              type="text" 
+              class="filename-input"
+              x-model="$store.fileBrowser.edit.fileName"
+              x-on:input.debounce.150ms="$store.fileBrowser.updateEditorMode(0)"
+              :placeholder="$store.fileBrowser.edit.isNewFile ? 'Enter file name (e.g., script.py)' : 'File name'"
+            />
+          </div>
+        </template>
+
+        <!-- Editor -->
+        <template x-if="!$store.fileBrowser.edit.isLoading">
+          <div id="file-editor-container"></div>
+        </template>
+
+        <!-- File Path Display (for existing files, below editor) -->
+        <template x-if="!$store.fileBrowser.edit.isNewFile && !$store.fileBrowser.edit.isLoading && $store.fileBrowser.edit.filePath">
+          <div class="file-path-display">
+            <span class="file-path-label">Path:</span>
+            <span class="file-path-text" x-text="$store.fileBrowser.edit.filePath"></span>
+          </div>
+        </template>
+
+      </div>
+    </template>
+
+    <!-- Footer -->
+    <template x-if="$store.fileBrowser">
+      <div class="modal-footer" data-modal-footer>
+        <button 
+          class="btn btn-ok" 
+          @click="$store.fileBrowser.saveEdit()" 
+          :disabled="$store.fileBrowser.edit.isSaving || $store.fileBrowser.edit.isLoading"
+        >
+          <span x-text="$store.fileBrowser.edit.isSaving ? 'Saving...' : ($store.fileBrowser.edit.isNewFile ? 'Create' : 'Save')"></span>
+        </button>
+        <button class="btn btn-cancel" @click="$store.fileBrowser.cancelEdit()">Cancel</button>
+      </div>
+    </template>
+  </div>
+
+  <style>
+    .file-edit-root {
+      display: flex;
+      flex-direction: column;
+      width: 100%;
+      height: 100%;
+      min-height: 400px;
+    }
+
+    .loading-state,
+    .error-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: var(--spacing-lg);
+      min-height: 200px;
+    }
+
+    .loading-spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid var(--color-border);
+      border-top: 3px solid var(--color-primary);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-bottom: var(--spacing-md);
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .loading-state p {
+      color: var(--color-text-secondary);
+      margin: 0;
+    }
+
+    .error-message {
+      color: var(--color-error, #e74c3c);
+      font-weight: 500;
+    }
+
+    .file-name-input {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.5rem 1rem;
+      border-bottom: 1px solid var(--color-border);
+    }
+
+    .file-name-label {
+      font-weight: 500;
+      color: var(--color-text);
+      white-space: nowrap;
+    }
+
+    .filename-input {
+      flex: 1;
+      padding: 0.5rem 0.75rem;
+      border: 1px solid var(--color-border);
+      border-radius: 4px;
+      background: var(--color-background);
+      color: var(--color-text);
+      font-size: 1rem;
+    }
+
+    .filename-input:focus {
+      outline: none;
+      border-color: var(--color-primary);
+    }
+
+    .file-path-display {
+      padding: 0.5rem 1rem;
+      border-top: 1px solid var(--color-border);
+      font-size: 0.75rem;
+      color: var(--color-text-secondary);
+      font-family: 'Roboto Mono', monospace;
+    }
+
+    .file-path-label {
+      margin-right: 0.5rem;
+      color: var(--color-text);
+    }
+
+    #file-editor-container {
+      width: 100%;
+      height: 60vh;
+      border-radius: 0.4rem;
+      overflow: auto;
+    }
+
+    #file-editor-container::-webkit-scrollbar {
+      width: 0;
+    }
+  </style>
+</body>
+</html>
