@@ -48,6 +48,22 @@
                       <div class="file-size" x-text="$store.fileBrowser.formatFileSize(file.size)"></div>
                       <div class="file-date" x-text="$store.fileBrowser.formatDate(file.modified)"></div>
                       <div class="file-actions">
+                        <!-- More actions dropdown -->
+                        <div class="dropdown" x-data="{ open: false }" @click.outside="open = false">
+                          <button class="btn-icon-action" @click.stop="open = !open" title="More actions">
+                            <span class="material-symbols-outlined">more_vert</span>
+                          </button>
+                          <div class="dropdown-menu" x-show="open" x-transition.opacity>
+                            <button class="dropdown-item" x-show="!file.is_dir" @click.stop="$store.fileBrowser.openEdit(file); open = false">
+                              <span class="material-symbols-outlined">edit</span>
+                              Edit
+                            </button>
+                            <button class="dropdown-item" @click.stop="$store.fileBrowser.openRename(file); open = false">
+                              <span class="material-symbols-outlined">drive_file_rename_outline</span>
+                              Rename
+                            </button>
+                          </div>
+                        </div>
                         <button class="btn-icon-action" @click.stop="$store.fileBrowser.downloadFile(file)" title="Download file">
                           <span class="material-symbols-outlined">download</span>
                         </button>
@@ -72,16 +88,38 @@
     
     <!-- Modal Footer (outside template x-if so it exists immediately) -->
     <template x-if="$store.fileBrowser">
-      <div class="modal-footer" data-modal-footer>
-        <label class="btn btn-upload">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5"/></svg>
-          Upload Files
-          <input type="file" multiple accept="*" @change="$store.fileBrowser.handleFileUpload" style="display:none;" />
-        </label>
-        <button class="btn btn-cancel" @click="$store.fileBrowser.handleClose()">Close Browser</button>
+      <div class="modal-footer" data-modal-footer x-data="{ uploadInput: null }" x-init="uploadInput = $refs.uploadInput">
+        <button class="btn btn-footer-action" @click="$store.fileBrowser.openNewFile()" title="New File">
+          <span class="material-symbols-outlined">note_add</span>
+          <span class="btn-text">New File</span>
+        </button>
+        <button class="btn btn-footer-action" @click="$store.fileBrowser.openNewFolder()" title="New Folder">
+          <span class="material-symbols-outlined">create_new_folder</span>
+          <span class="btn-text">New Folder</span>
+        </button>
+        <button class="btn btn-footer-action" @click="$refs.uploadInput.click()" title="Upload Files">
+          <span class="material-symbols-outlined">upload</span>
+          <span class="btn-text">Upload  Files</span>
+        </button>
+        <input x-ref="uploadInput" type="file" multiple accept="*" @change="$store.fileBrowser.handleFileUpload" style="display:none;" />
+        <button class="btn btn-cancel" @click="$store.fileBrowser.handleClose()">Close</button>
       </div>
     </template>
   </div>
+
+  <!-- Confirm Dialog Template -->
+  <template id="confirm-dialog-template">
+    <div class="confirm-dialog-overlay">
+      <div class="confirm-dialog">
+        <div class="confirm-dialog-title"></div>
+        <div class="confirm-dialog-message"></div>
+        <div class="confirm-dialog-buttons">
+          <button class="btn btn-cancel confirm-btn-cancel">Cancel</button>
+          <button class="btn btn-ok confirm-btn-ok">Discard</button>
+        </div>
+      </div>
+    </div>
+  </template>
 
   <style>
     /* File Browser Root */
@@ -131,18 +169,25 @@
     }
 
     /* File Browser Styles */
-    .files-list,
-    .file-header,
-    .file-item {
+    .files-list {
+      width: 100%;
+      border-radius: 4px;
+    }
+    .file-header {
       width: 100%;
       border-radius: 4px;
       overflow: hidden;
+    }
+    .file-item {
+      width: 100%;
+      border-radius: 4px;
+      position: relative;
     }
 
     /* Header Styles */
     .file-header {
     display: grid;
-    grid-template-columns: 2fr 0.6fr 1fr 80px;
+    grid-template-columns: 1.5fr 0.5fr 0.8fr 100px;
     background: var(--secondary-bg);
     padding: 8px 0;
     font-weight: bold;
@@ -160,15 +205,15 @@
     /* File Item Styles */
     .file-item {
     display: grid;
-    grid-template-columns: 2fr 0.6fr 1fr 80px;
+    grid-template-columns: 1.5fr 0.5fr 0.8fr 100px;
     align-items: center;
     padding: 8px 0;
     font-size: 0.875rem;
     border-top: 1px solid var(--color-border);
     transition: background-color 0.2s;
     white-space: nowrap;
-    overflow: hidden;
     color: var(--color-text);
+    position: relative;
     }
     .file-item:hover {
     background-color: var(--color-secondary);
@@ -258,55 +303,124 @@
     background-color: var(--color-secondary);
     }
 
-    /* Upload Button Styles */
-    .btn-upload {
-    display: inline-flex;
-    align-items: center;
-    padding: 8px 16px;
-    background: #4248f1;
-    gap: 0.5rem;
-    color: white;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: background-color 0.3s ease-in-out;
+    /* Footer Action Button */
+    .btn-footer-action {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 0.45rem 1rem;
+      background: #4248f1;
+      color: white;
+      border-radius: 0.25rem;
+      cursor: pointer;
+      transition: background-color 0.3s ease-in-out;
     }
-    .btn-upload > svg {
-    width: 20px;
+    .btn-footer-action:hover {
+      background-color: #353bc5;
     }
-    .btn-upload:hover {
-    background-color: #353bc5;
+    .btn-footer-action:active {
+      background-color: #2b309c;
     }
-    .btn-upload:active {
-    background-color: #2b309c;
+
+    @media (max-width: 540px) {
+      .btn-footer-action .btn-text {
+        display: none;
+      }
+    }
+
+    /* Dropdown Menu */
+    .file-actions .dropdown-menu {
+      z-index: 100;
+      min-width: 120px;
     }
 
     /* File Actions */
     .file-actions {
-    display: flex;
-    gap: var(--spacing-xs);
+      display: flex;
+      gap: var(--spacing-xs);
+      flex-shrink: 0;
     }
     /* Responsive Design */
     @media (max-width: 768px) {
-    .file-header,
-    .file-item {
-        grid-template-columns: 1fr 0.5fr 80px;
-    }
-    .file-cell-date,
-    .file-date {
+      .file-header,
+      .file-item {
+        grid-template-columns: 1fr 0.5fr 100px;
+      }
+      .file-cell-date,
+      .file-date {
         display: none;
-    }
+      }
     }
     @media (max-width: 540px) {
-    .file-header,
-    .file-item {
-        grid-template-columns: 1fr 80px;
-    }
-    .file-cell-size,
-    .file-size,
-    .file-cell-date,
-    .file-date {
+      .file-header,
+      .file-item {
+        grid-template-columns: 1fr 100px;
+      }
+      .file-cell-size,
+      .file-size,
+      .file-cell-date,
+      .file-date {
         display: none;
+      }
+      .file-name {
+        min-width: 0;
+      }
     }
+
+    /* Confirm Dialog */
+    .confirm-dialog-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10000;
+    }
+    .confirm-dialog {
+      background-color: var(--color-background);
+      border-radius: 8px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      padding: 1.5rem;
+      min-width: 300px;
+      max-width: 400px;
+      animation: confirm-dialog-enter 0.15s ease-out;
+    }
+    @keyframes confirm-dialog-enter {
+      from { opacity: 0; transform: scale(0.95); }
+      to { opacity: 1; transform: scale(1); }
+    }
+    .confirm-dialog-title {
+      font-size: 1.125rem;
+      font-weight: 600;
+      color: var(--color-text);
+      margin-bottom: 0.75rem;
+    }
+    .confirm-dialog-message {
+      font-size: 0.9375rem;
+      color: var(--color-text-secondary);
+      margin-bottom: 1.5rem;
+      line-height: 1.5;
+    }
+    .confirm-dialog-buttons {
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.75rem;
+    }
+    .confirm-dialog-buttons .btn {
+      min-width: 80px;
+    }
+    .confirm-dialog-buttons .confirm-btn-ok {
+      background-color: var(--color-error, #e74c3c);
+      border-color: var(--color-error, #e74c3c);
+    }
+    .confirm-dialog-buttons .confirm-btn-ok:hover {
+      background-color: #c0392b;
+      border-color: #c0392b;
     }
   </style>
 </body>

@@ -267,6 +267,7 @@ some classes like modal-header are shared between the old and the new system */
   align-items: center;
   gap: 0.5rem;
   transition: background 0.3s ease-in-out;
+  padding: 0.65rem 1.5rem;
 }
 .btn-ok > svg {
   max-width: 20px;
@@ -466,14 +467,6 @@ input[type="range"]::-moz-range-thumb {
   .btn {
     text-wrap: wrap;
     font-size: var(--font-size-small);
-  }
-  .btn-upload {
-    margin: 0 auto;
-    gap: 0.5rem;
-    align-items: center;
-  }
-  .btn-upload > svg {
-    width: 20px;
   }
 }
 

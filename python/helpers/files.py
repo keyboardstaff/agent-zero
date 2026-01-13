@@ -18,6 +18,42 @@ import mimetypes
 from simpleeval import simple_eval
 
 
+# Max file size for editing (1MB)
+MAX_EDIT_FILE_SIZE = 1 * 1024 * 1024
+# Sample size for binary detection
+BINARY_CHECK_SIZE = 10 * 1024
+
+
+def is_binary_file(file_path: str) -> bool:
+    """Check if file is binary by sampling first ~10KB."""
+    try:
+        with open(file_path, "rb") as f:
+            chunk = f.read(BINARY_CHECK_SIZE)
+        if not chunk:
+            return False
+        # Check for null bytes (strong binary indicator)
+        if b"\x00" in chunk:
+            return True
+        # Check ratio of non-text bytes
+        text_chars = bytearray({7, 8, 9, 10, 12, 13, 27} | set(range(0x20, 0x100)) - {0x7f})
+        non_text = sum(1 for b in chunk if b not in text_chars)
+        return non_text / len(chunk) > 0.30
+    except Exception:
+        return True
+
+
+def check_file_editable(file_path: str) -> tuple[bool, str]:
+    """Check if file can be edited. Returns (ok, error_message)."""
+    if not os.path.isfile(file_path):
+        return False, "File not found"
+    size = os.path.getsize(file_path)
+    if size > MAX_EDIT_FILE_SIZE:
+        return False, f"File too large ({size // 1024}KB > 1MB limit)"
+    if is_binary_file(file_path):
+        return False, "Binary file cannot be edited"
+    return True, ""
+
+
 class VariablesPlugin(ABC):
     @abstractmethod
     def get_variables(self, file: str, backup_dirs: list[str] | None = None, **kwargs) -> dict[str, Any]:  # type: ignore

@@ -1,0 +1,79 @@
+<html>
+<head>
+  <title>Rename</title>
+</head>
+<body>
+  <div x-data x-init="$nextTick(() => $refs.nameInput?.focus())">
+    <template x-if="$store.fileBrowser">
+      <div class="rename-modal">
+        <div class="rename-form">
+          <label class="rename-label" x-text="$store.fileBrowser.rename.isNewFolder ? 'Folder name:' : 'New name:'"></label>
+          <input 
+            x-ref="nameInput"
+            type="text" 
+            class="rename-input"
+            x-model="$store.fileBrowser.rename.newName"
+            @keydown.enter="$store.fileBrowser.submitRename()"
+            @keydown.escape="$store.fileBrowser.cancelRename()"
+            :placeholder="$store.fileBrowser.rename.isNewFolder ? 'Enter folder name' : 'Enter new name'"
+          />
+        </div>
+      </div>
+    </template>
+
+    <template x-if="$store.fileBrowser">
+      <div class="modal-footer" data-modal-footer>
+        <button class="btn btn-ok" @click="$store.fileBrowser.submitRename()" :disabled="$store.fileBrowser.rename.isLoading">
+          <span x-text="$store.fileBrowser.rename.isLoading ? 'Saving...' : ($store.fileBrowser.rename.isNewFolder ? 'Create' : 'Save')"></span>
+        </button>
+        <button class="btn btn-cancel" @click="$store.fileBrowser.cancelRename()">Cancel</button>
+      </div>
+    </template>
+  </div>
+
+  <style>
+    /* Override modal width for rename dialog */
+    :root .modal.show .modal-inner:has(.rename-modal) {
+      max-width: 500px !important;
+      width: 50% !important;
+      min-width: 300px !important;
+    }
+    @media (max-width: 540px) {
+      :root .modal.show .modal-inner:has(.rename-modal) {
+        width: 90% !important;
+        max-width: none !important;
+        min-width: auto !important;
+      }
+    }
+    .rename-modal {
+      padding: 1rem;
+    }
+    .rename-form {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+    .rename-label {
+      font-weight: 500;
+      color: var(--color-text);
+    }
+    .rename-input {
+      padding: 0.5rem 0.75rem;
+      border: 1px solid var(--color-border);
+      border-radius: 4px;
+      background: var(--color-background);
+      color: var(--color-text);
+      font-size: 1rem;
+    }
+    .rename-input:focus {
+      outline: none;
+      border-color: var(--color-primary);
+    }
+    .rename-error {
+      color: var(--color-error, #e74c3c);
+      font-size: 0.875rem;
+      margin: 0;
+    }
+  </style>
+</body>
+</html>
