@@ -31,6 +31,11 @@ class SearchEngine(Tool):
             handle_error(result)
             return f"{source} search failed: {str(result)}"
 
+        # Check if the response contains the 'results' key
+        if not isinstance(result, dict) or "results" not in result:
+            error_msg = result.get("error", "Unknown error") if isinstance(result, dict) else str(result)
+            return f"{source} search failed: {error_msg}"
+
         outputs = []
         for item in result["results"]:
             outputs.append(f"{item['title']}\n{item['url']}\n{item['content']}")
