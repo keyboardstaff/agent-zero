@@ -1,5 +1,11 @@
 # SearXNG settings
-use_default_settings: false
+use_default_settings:
+  engines:
+    remove:
+      - radio browser
+      - ahmia
+      - torch
+      - yacy images
 
 general:
   debug: false
@@ -26,31 +32,3 @@ enabled_plugins:
   - 'Hash plugin'
   - 'Self Informations'
   - 'Tracker URL remover'
-  - 'Ahmia blacklist'
-
-# Engines (Explicitly Defined)
-engines:
-
-  # ---- Google ----
-  - name: google
-    engine: google
-    timeout: 6.0
-    disabled: false
-
-  # ---- Bing ----
-  - name: bing
-    engine: bing
-    timeout: 6.0
-    disabled: false
-
-  # ---- DuckDuckGo ----
-  - name: duckduckgo
-    engine: duckduckgo
-    timeout: 6.0
-    disabled: false
-
-  # ---- WikiData ----
-  - name: wikidata
-    engine: wikidata
-    timeout: 6.0
-    disabled: false
