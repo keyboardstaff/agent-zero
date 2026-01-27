@@ -71,13 +71,27 @@ const model = {
     console.log("Setting up drag and drop handlers...");
     let dragCounter = 0;
 
-    // Prevent default drag behaviors
+    // Helper to check if drag contains files (external drag)
+    const isFileDrag = (e) => {
+      if (e.dataTransfer.types) {
+        for (let i = 0; i < e.dataTransfer.types.length; i++) {
+          if (e.dataTransfer.types[i] === "Files") {
+            return true;
+          }
+        }
+      }
+      return false;
+    };
+
+    // Prevent default drag behaviors only for file drags
     ["dragenter", "dragover", "dragleave", "drop"].forEach((eventName) => {
       document.addEventListener(
         eventName,
         (e) => {
-          e.preventDefault();
-          e.stopPropagation();
+          // Only intercept file drags, let internal drags through
+          if (isFileDrag(e)) {
+            e.preventDefault();
+          }
         },
         false
       );
@@ -87,6 +101,9 @@ const model = {
     document.addEventListener(
       "dragenter",
       (e) => {
+        // Only show overlay for file drags
+        if (!isFileDrag(e)) return;
+        
         console.log("Drag enter detected");
         dragCounter++;
         if (dragCounter === 1) {
@@ -101,6 +118,9 @@ const model = {
     document.addEventListener(
       "dragleave",
       (e) => {
+        // Only handle file drags
+        if (!isFileDrag(e)) return;
+        
         dragCounter--;
         if (dragCounter === 0) {
           this.hideDragDropOverlay();
@@ -113,6 +133,9 @@ const model = {
     document.addEventListener(
       "drop",
       (e) => {
+        // Only handle file drops
+        if (!isFileDrag(e)) return;
+        
         console.log("Drop detected with files:", e.dataTransfer.files.length);
         dragCounter = 0;
         this.hideDragDropOverlay();

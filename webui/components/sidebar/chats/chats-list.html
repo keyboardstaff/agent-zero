@@ -3,12 +3,16 @@
 <head>
   <script type="module">
     import { store } from "/components/sidebar/chats/chats-store.js";
+    import { store as groupsStore } from "/components/sidebar/groups/groups-store.js";
   </script>
 </head>
 
 <body>
+  <!-- Group create panel -->
+  <x-component path="sidebar/groups/groups-create.html"></x-component>
+
   <div x-data>
-    <template x-if="$store.chats">
+    <template x-if="$store.chats && $store.groups">
       <div class="chats-list-container" x-data>
         <div class="section-header-row">
           <h3 class="section-header">Chats</h3>
@@ -18,14 +22,28 @@
           </button>
         </div>
 
+        <!-- Group tabs -->
+        <x-component path="sidebar/groups/groups-tabs.html"></x-component>
 
-
-        <ul class="config-list chats-config-list" x-show="$store.chats.contexts.length > 0">
-          <template x-for="context in $store.chats.contexts" :key="context.id">
+        <ul class="config-list chats-config-list" x-show="$store.chats.getFilteredContexts().length > 0">
+          <template x-for="context in $store.chats.getFilteredContexts()" :key="context.id">
             <li>
-              <div :class="{'chat-container': true, 'chat-selected': context.id === $store.chats.selected}"
-                @click="$store.chats.selectChat(context.id)">
+              <div 
+                :class="{'chat-container': true, 'chat-selected': context.id === $store.chats.selected}"
+                draggable="true"
+                @click="$store.chats.selectChat(context.id)"
+                @dragstart="$event.dataTransfer.setData('application/x-chat-id', context.id); $event.dataTransfer.effectAllowed = 'copyMove'; $el.classList.add('chat-dragging');"
+                @dragend="$el.classList.remove('chat-dragging'); document.querySelectorAll('.group-tab-dragover').forEach(el => el.classList.remove('group-tab-dragover'))"
+              >
                 <div class="chat-list-button">
+                  <!-- Group indicator icon -->
+                  <template x-if="$store.groups.getChatGroupId(context.id)">
+                    <span 
+                      class="material-symbols-outlined chat-group-indicator" 
+                      x-text="$store.groups.getGroupById($store.groups.getChatGroupId(context.id))?.icon || 'folder'"
+                      :title="$store.groups.getGroupById($store.groups.getChatGroupId(context.id))?.name || ''"
+                    ></span>
+                  </template>
                   <span class="project-color-ball"
                     :style="context.project?.color ? { backgroundColor: context.project.color } : { border: '1px solid var(--color-border)' }"></span>
                   <span class="chat-name"
@@ -38,8 +56,8 @@
             </li>
           </template>
         </ul>
-        <div class="empty-list-message" x-show="$store.chats.contexts.length === 0">
-          <p><i>No chats to list.</i></p>
+        <div class="empty-list-message" x-show="$store.chats.getFilteredContexts().length === 0">
+          <p x-text="$store.groups.selectedGroupId ? 'No chats in this group.' : 'No chats to list.'"></p>
         </div>
       </div>
     </template>
@@ -176,6 +194,26 @@
     .chat-selected .chat-name {
       font-size: var(--font-size-normal);
       font-weight: bold;
+    }
+
+    /* Chat group indicator */
+    .chat-group-indicator {
+      font-size: 14px;
+      opacity: 0.6;
+      flex-shrink: 0;
+    }
+
+    /* Dragging state for chat items */
+    .chat-container[draggable="true"] {
+      cursor: grab;
+    }
+
+    .chat-container[draggable="true"]:active {
+      cursor: grabbing;
+    }
+
+    .chat-container.chat-dragging {
+      opacity: 0.5;
     }
 
     /* .chat-list-button.font-bold { position: relative; background-color: var(--color-border) 0.05; } */

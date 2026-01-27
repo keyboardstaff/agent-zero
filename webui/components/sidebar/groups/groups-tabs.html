@@ -1,0 +1,196 @@
+<html>
+<head>
+  <script type="module">
+    import { store } from "/components/sidebar/groups/groups-store.js";
+  </script>
+</head>
+<body>
+  <div x-data>
+    <template x-if="$store.groups">
+      <div class="groups-tabs-container">
+        <!-- Tabs row with horizontal scroll -->
+        <div class="groups-tabs-scroll">
+          <!-- Create group button -->
+          <button 
+            class="group-tab group-tab-add" 
+            @click="$store.groups.openCreatePanel()"
+            title="Create group"
+          >
+            <span class="material-symbols-outlined">add</span>
+          </button>
+
+          <!-- Group tabs with drag & drop reordering -->
+          <template x-for="(group, index) in $store.groups.groups" :key="group.id">
+            <div 
+              class="group-tab"
+              :class="{ 'group-tab-selected': $store.groups.selectedGroupId === group.id }"
+              :data-group-index="index"
+              draggable="true"
+              @click="$store.groups.toggleGroupSelection(group.id)"
+              @dragstart="
+                $store.groups.dragType = 'group';
+                $store.groups.dragIndex = index;
+                $event.dataTransfer.setData('application/x-group-index', index.toString()); 
+                $event.dataTransfer.effectAllowed = 'move';
+                $el.classList.add('group-tab-dragging');
+              "
+              @dragover.prevent="$event.dataTransfer.dropEffect = 'move'"
+              @drop.prevent="
+                const chatId = $event.dataTransfer.getData('application/x-chat-id');
+                if (chatId) {
+                  // If chat already in this group, remove it; otherwise assign to this group
+                  if ($store.groups.getChatGroupId(chatId) === group.id) {
+                    $store.groups.removeChatFromGroup(chatId);
+                  } else {
+                    $store.groups.assignChatToGroup(chatId, group.id);
+                  }
+                } else if ($store.groups.dragType === 'group' && $store.groups.dragIndex !== null) {
+                  $store.groups.reorderGroups($store.groups.dragIndex, index);
+                }
+                $el.classList.remove('group-tab-dragover');
+                $store.groups.dragType = null;
+                $store.groups.dragIndex = null;
+              "
+              @dragenter.prevent="$el.classList.add('group-tab-dragover')"
+              @dragleave="$el.classList.remove('group-tab-dragover')"
+              @dragend="
+                $el.classList.remove('group-tab-dragging');
+                document.querySelectorAll('.group-tab-dragover').forEach(el => el.classList.remove('group-tab-dragover'));
+                $store.groups.dragType = null;
+                $store.groups.dragIndex = null;
+              "
+            >
+              <span class="material-symbols-outlined group-tab-icon" x-text="group.icon"></span>
+              <span class="group-tab-name" x-text="group.name"></span>
+              <button 
+                class="group-tab-delete" 
+                @click.stop="$confirmClick($event, () => $store.groups.deleteGroup(group.id))"
+                title="Delete group"
+              >
+                <span class="material-symbols-outlined">close</span>
+              </button>
+            </div>
+          </template>
+        </div>
+      </div>
+    </template>
+  </div>
+
+  <style>
+    .groups-tabs-container {
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      margin-bottom: var(--spacing-sm);
+    }
+
+    .groups-tabs-scroll {
+      display: flex;
+      flex-direction: row;
+      gap: 6px;
+      overflow-x: auto;
+      overflow-y: hidden;
+      padding: 4px 0;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+
+    .groups-tabs-scroll::-webkit-scrollbar {
+      display: none;
+    }
+
+    .group-tab {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 8px;
+      border-radius: 16px;
+      background: var(--color-background);
+      border: 1px solid var(--color-border);
+      cursor: pointer;
+      white-space: nowrap;
+      font-size: var(--font-size-small);
+      color: var(--color-text);
+      transition: all 0.15s ease;
+      flex-shrink: 0;
+    }
+
+    .group-tab:hover {
+      background: var(--color-background-hover);
+    }
+
+    .group-tab-selected {
+      background: var(--color-primary);
+      color: white;
+      border-color: var(--color-primary);
+    }
+
+    .group-tab-selected:hover {
+      background: var(--color-primary);
+      opacity: 0.9;
+    }
+
+    .group-tab-add {
+      padding: 4px 8px;
+      background: transparent;
+      border-style: dashed;
+    }
+
+    .group-tab-add:hover {
+      background: var(--color-background-hover);
+      border-style: solid;
+    }
+
+    .group-tab-icon {
+      font-size: 16px;
+    }
+
+    .group-tab-name {
+      max-width: 80px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .group-tab-delete {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: none;
+      border: none;
+      padding: 0;
+      margin-left: 2px;
+      cursor: pointer;
+      color: inherit;
+      opacity: 0;
+      transition: opacity 0.15s ease;
+    }
+
+    .group-tab-delete .material-symbols-outlined {
+      font-size: 14px;
+    }
+
+    .group-tab:hover .group-tab-delete {
+      opacity: 0.6;
+    }
+
+    .group-tab-delete:hover {
+      opacity: 1 !important;
+    }
+
+    .group-tab-dragover {
+      border-color: var(--color-primary);
+      background: var(--color-background-hover);
+      box-shadow: 0 0 0 2px rgba(var(--color-primary-rgb, 66, 133, 244), 0.3);
+    }
+
+    .group-tab-dragging {
+      opacity: 0.5;
+    }
+
+    /* Touch device: always show delete button */
+    .device-touch .group-tab-delete {
+      opacity: 0.6;
+    }
+  </style>
+</body>
+</html>

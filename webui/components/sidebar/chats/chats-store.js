@@ -1,4 +1,4 @@
-import { createStore } from "/js/AlpineStore.js";
+import { createStore, getStore } from "/js/AlpineStore.js";
 import {
   sendJsonData,
   getContext,
@@ -25,6 +25,17 @@ const model = {
 
   getSelectedContext(){
     return this.selectedContext;
+  },
+
+  // Get filtered contexts based on selected group
+  getFilteredContexts() {
+    const groupsStore = getStore("groups");
+    if (!groupsStore || !groupsStore.selectedGroupId) {
+      return this.contexts;
+    }
+    return this.contexts.filter(ctx => 
+      groupsStore.chatGroupMap[ctx.id] === groupsStore.selectedGroupId
+    );
   },
 
   init() {
@@ -147,6 +158,11 @@ const model = {
       });
 
       if (response.ok) {
+        // Auto-assign to current selected group if any
+        const groupsStore = getStore("groups");
+        if (groupsStore?.selectedGroupId) {
+          groupsStore.assignChatToGroup(response.ctxid, groupsStore.selectedGroupId);
+        }
         this.selectChat(response.ctxid);
         return;
       }

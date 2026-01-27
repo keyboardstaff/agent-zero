@@ -1,0 +1,328 @@
+<html>
+<head>
+  <script type="module">
+    import { store } from "/components/sidebar/groups/groups-store.js";
+  </script>
+</head>
+<body>
+  <div x-data>
+    <template x-if="$store.groups">
+      <!-- Slide-out panel overlay -->
+      <div 
+        class="group-panel-overlay"
+        :class="{ 'group-panel-overlay-visible': $store.groups.isPanelOpen }"
+        @click="$store.groups.closePanel()"
+      ></div>
+    </template>
+  </div>
+
+  <div x-data>
+    <template x-if="$store.groups">
+      <!-- Slide-out panel -->
+      <div 
+        class="group-create-panel"
+        :class="{ 'group-create-panel-open': $store.groups.isPanelOpen }"
+      >
+        <div class="group-panel-header">
+          <h3 class="group-panel-title">Create Group</h3>
+          <button class="group-panel-close" @click="$store.groups.closePanel()">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </div>
+
+        <div class="group-panel-content">
+          <!-- Group name input -->
+          <div class="group-form-field">
+            <label class="group-form-label">Group Name</label>
+            <input 
+              type="text" 
+              class="group-form-input"
+              x-model="$store.groups.formName"
+              placeholder="Enter group name..."
+              @keydown.enter="$store.groups.createGroup()"
+            />
+          </div>
+
+          <!-- Preset options -->
+          <div class="group-form-field">
+            <label class="group-form-label">Quick Select</label>
+            <div class="group-presets">
+              <template x-for="preset in $store.groups.presetGroups" :key="preset.name">
+                <button 
+                  class="group-preset-btn"
+                  :class="{ 'group-preset-selected': $store.groups.formName === preset.name && $store.groups.formIcon === preset.icon }"
+                  @click="$store.groups.selectPreset(preset)"
+                >
+                  <span class="material-symbols-outlined" x-text="preset.icon"></span>
+                  <span x-text="preset.name"></span>
+                </button>
+              </template>
+            </div>
+          </div>
+
+          <!-- Icon selector (for custom names) -->
+          <div class="group-form-field">
+            <label class="group-form-label">Icon</label>
+            <div class="group-icons-grid">
+              <template x-for="icon in $store.groups.availableIcons" :key="icon">
+                <button 
+                  class="group-icon-btn"
+                  :class="{ 'group-icon-selected': $store.groups.formIcon === icon }"
+                  @click="$store.groups.formIcon = icon"
+                >
+                  <span class="material-symbols-outlined" x-text="icon"></span>
+                </button>
+              </template>
+            </div>
+          </div>
+        </div>
+
+        <div class="group-panel-footer">
+          <button class="group-btn group-btn-cancel" @click="$store.groups.closePanel()">
+            Cancel
+          </button>
+          <button 
+            class="group-btn group-btn-confirm" 
+            @click="$store.groups.createGroup()"
+            :disabled="!$store.groups.formName.trim()"
+          >
+            Create
+          </button>
+        </div>
+      </div>
+    </template>
+  </div>
+
+  <style>
+    .group-panel-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.3);
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.2s ease, visibility 0.2s ease;
+      z-index: 1100;
+    }
+
+    .group-panel-overlay-visible {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .group-create-panel {
+      position: fixed;
+      top: 0;
+      left: 250px;
+      bottom: 0;
+      width: 280px;
+      background: var(--color-panel);
+      border-left: 1px solid var(--color-border);
+      box-shadow: 2px 0 10px rgba(0, 0, 0, 0.2);
+      display: flex;
+      flex-direction: column;
+      transform: translateX(-100%);
+      opacity: 0;
+      visibility: hidden;
+      transition: transform 0.25s ease, opacity 0.25s ease, visibility 0.25s ease;
+      z-index: 1101;
+    }
+
+    .group-create-panel-open {
+      transform: translateX(0);
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .group-panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--color-border);
+      flex-shrink: 0;
+    }
+
+    .group-panel-title {
+      margin: 0;
+      font-size: var(--font-size-normal);
+      font-weight: 600;
+      color: var(--color-text);
+    }
+
+    .group-panel-close {
+      background: none;
+      border: none;
+      padding: 4px;
+      cursor: pointer;
+      color: var(--color-text);
+      opacity: 0.7;
+      transition: opacity 0.15s ease;
+    }
+
+    .group-panel-close:hover {
+      opacity: 1;
+    }
+
+    .group-panel-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+    }
+
+    .group-form-field {
+      margin-bottom: 16px;
+    }
+
+    .group-form-label {
+      display: block;
+      font-size: var(--font-size-small);
+      color: var(--color-text);
+      opacity: 0.8;
+      margin-bottom: 8px;
+    }
+
+    .group-form-input {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid var(--color-border);
+      border-radius: 6px;
+      background: var(--color-background);
+      color: var(--color-text);
+      font-size: var(--font-size-small);
+      box-sizing: border-box;
+    }
+
+    .group-form-input:focus {
+      outline: none;
+      border-color: var(--color-primary);
+    }
+
+    .group-presets {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .group-preset-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border: 1px solid var(--color-border);
+      border-radius: 6px;
+      background: var(--color-background);
+      color: var(--color-text);
+      font-size: var(--font-size-small);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      text-align: left;
+    }
+
+    .group-preset-btn:hover {
+      background: var(--color-background-hover);
+    }
+
+    .group-preset-selected {
+      border-color: var(--color-primary);
+      background: var(--color-primary);
+      color: white;
+    }
+
+    .group-preset-selected:hover {
+      background: var(--color-primary);
+      opacity: 0.9;
+    }
+
+    .group-preset-btn .material-symbols-outlined {
+      font-size: 18px;
+    }
+
+    .group-icons-grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 6px;
+    }
+
+    .group-icon-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 8px;
+      border: 1px solid var(--color-border);
+      border-radius: 6px;
+      background: var(--color-background);
+      color: var(--color-text);
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .group-icon-btn:hover {
+      background: var(--color-background-hover);
+    }
+
+    .group-icon-selected {
+      border-color: var(--color-primary);
+      background: var(--color-primary);
+      color: white;
+    }
+
+    .group-icon-btn .material-symbols-outlined {
+      font-size: 18px;
+    }
+
+    .group-panel-footer {
+      display: flex;
+      gap: 8px;
+      padding: 12px 16px;
+      border-top: 1px solid var(--color-border);
+      flex-shrink: 0;
+    }
+
+    .group-btn {
+      flex: 1;
+      padding: 8px 16px;
+      border-radius: 6px;
+      font-size: var(--font-size-small);
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .group-btn-cancel {
+      background: var(--color-background);
+      border: 1px solid var(--color-border);
+      color: var(--color-text);
+    }
+
+    .group-btn-cancel:hover {
+      background: var(--color-background-hover);
+    }
+
+    .group-btn-confirm {
+      background: var(--color-primary);
+      border: 1px solid var(--color-primary);
+      color: white;
+    }
+
+    .group-btn-confirm:hover {
+      opacity: 0.9;
+    }
+
+    .group-btn-confirm:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* Mobile responsive */
+    @media (max-width: 768px) {
+      .group-create-panel {
+        left: 0;
+        width: 100%;
+        max-width: 300px;
+      }
+    }
+  </style>
+</body>
+</html>
