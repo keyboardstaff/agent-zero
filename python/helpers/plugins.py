@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from python.helpers import files
+from python.helpers import files, print_style
 
 # Extracts target selector from <meta name="plugin-target" content="...">
 _META_TARGET_RE = re.compile(
@@ -62,8 +62,8 @@ def get_plugin_paths(*subpaths: str) -> List[str]:
     Resolve existing directories under each plugin matching subpaths.
 
     Example:
-        get_plugin_paths("extensions", "backend", "monologue_end")
-        -> ["/abs/plugins/memory/extensions/backend/monologue_end", ...]
+        get_plugin_paths("extensions", "python", "monologue_end")
+        -> ["/abs/plugins/memory/extensions/python/monologue_end", ...]
     """
     sub = "/".join(subpaths) if subpaths else ""
     paths: List[str] = []
@@ -74,32 +74,21 @@ def get_plugin_paths(*subpaths: str) -> List[str]:
     return paths
 
 
-def get_frontend_components() -> List[Dict[str, Any]]:
-    """
-    Return all injectable plugin frontend components.
-    Convention: plugins/*/extensions/frontend/**/*.html
-    The backend reads each file to extract the optional
-    <meta name="plugin-target" content=".css-selector"> tag so the
-    frontend never needs to fetch component HTML just to discover targets.
-    """
+def get_webui_extensions(extension_point:str) -> List[Dict[str, Any]]:
     entries: List[Dict[str, Any]] = []
     for plugin in list_plugins():
-        frontend_dir = plugin.path / "extensions" / "frontend"
+        frontend_dir = plugin.path / "extensions" / "webui" / extension_point
         if not frontend_dir.is_dir():
             continue
         for html_file in sorted(frontend_dir.rglob("*.html"), key=lambda p: p.name):
-            rel_path = html_file.relative_to(plugin.path).as_posix()
-            entry: Dict[str, Any] = {
-                "plugin_id": plugin.id,
-                "component_url": f"/plugins/{plugin.id}/{rel_path}",
-            }
-            # Extract injection target from meta tag (if present)
             try:
-                content = html_file.read_text(encoding="utf-8")
-                m = _META_TARGET_RE.search(content)
-                if m:
-                    entry["target"] = m.group(1)
+                rel_path = html_file.relative_to(plugin.path).as_posix()
+                entry: Dict[str, Any] = {
+                    "plugin_id": plugin.id,
+                    "component_url": f"{plugin.path}/{rel_path}",
+                    "html": html_file.read_text(encoding="utf-8"),
+                }
+                entries.append(entry)
             except Exception:
-                pass
-            entries.append(entry)
+                print_style.PrintStyle.error(f"Failed to load frontend extension file {html_file}")
     return entries

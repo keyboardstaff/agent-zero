@@ -114,7 +114,7 @@ export async function importComponent(path, targetElement) {
 
               const modulePromise = import(blobUrl)
                 .catch((err) => {
-                  console.error("Failed to load inline module", err);
+                  console.error(`Failed to load inline module ${virtualUrl}:`, err);
                   throw err;
                 })
                 .finally(() => URL.revokeObjectURL(blobUrl));

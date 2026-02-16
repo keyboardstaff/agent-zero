@@ -37,9 +37,11 @@ Components without the meta tag (e.g. modals, dashboards) are standalone and not
 
 Resolution flow:
 
+TODO update:ú
+
 1. The backend parses `<meta name="plugin-target">` from each component HTML at scan time.
 2. `/plugins_resolve` returns component URLs with their target selectors.
-3. `plugins.js` (loaded globally) creates `<x-component>` elements at the declared target selectors.
+3. TODO REM: `plugins.js` (loaded globally) creates `<x-component>` elements at the declared target selectors.
 4. The standard `components.js` MutationObserver handles loading automatically.
 5. A MutationObserver in `plugins.js` retries for targets that appear after initial page render.
 

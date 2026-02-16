@@ -54,7 +54,7 @@ const memoryDashboardStore = {
   pollingEnabled: false,
 
   async openModal() {
-    await openModal("../plugins/memory/extensions/frontend/memory_dashboard/memory-dashboard.html");
+    await openModal("../plugins/memory/webui/memory-dashboard.html");
   },
 
   init() {
@@ -449,7 +449,7 @@ ${memory.content_full}
     this.editMode = false;
     this.editMemoryBackup = null;
     // Use global modal system
-    openModal("../plugins/memory/extensions/frontend/memory_dashboard/memory-detail-modal.html");
+    openModal("../plugins/memory/webui/memory-detail-modal.html");
   },
 
   closeMemoryDetails() {

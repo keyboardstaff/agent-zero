@@ -1,7 +1,7 @@
 import * as initializer from "./initializer.js";
 import * as _modals from "./modals.js";
 import * as _components from "./components.js";
-import "./plugins.js";
+import * as _extensions from "./extensions.js";
 import { registerAlpineMagic } from "./confirmClick.js";
 
 // initialize required elements
