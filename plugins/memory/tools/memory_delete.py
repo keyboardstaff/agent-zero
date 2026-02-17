@@ -1,12 +1,6 @@
 from python.helpers.tool import Tool, Response
+from plugins.memory.helpers.memory import Memory
 
-# Import Memory from plugin
-import sys
-from pathlib import Path
-_plugin_root = Path(__file__).parent.parent
-if str(_plugin_root) not in sys.path:
-    sys.path.insert(0, str(_plugin_root))
-from helpers.memory import Memory
 
 
 class MemoryDelete(Tool):

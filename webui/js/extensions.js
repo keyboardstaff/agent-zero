@@ -36,11 +36,11 @@ export function invalidateCache() {
  * @param {any} data
  * @returns {Promise<void>}
  */
-export async function callJsExtensions(extensionPoint, data){
+export async function callJsExtensions(extensionPoint, ...data){
   const extensions = jsExtensionsCache.get(extensionPoint) || await loadJsExtensions(extensionPoint);
   for(const extension of extensions){
     try{
-      await extension.module.default(data);
+      await extension.module.default(...data);
     }catch(error){
       console.error(`Error calling extension: ${extension.path}`, error);
     }

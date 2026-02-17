@@ -2,8 +2,6 @@ from python.helpers import files
 from python.helpers.tool import Tool, Response
 from agent import Agent
 from python.helpers.log import LogItem
-
-# Direct import - this tool lives inside the memory plugin
 from plugins.memory.helpers import memory
 
 
