@@ -131,7 +131,7 @@
   .config-button {
     background-color: var(--color-panel);
     border: 0.05rem solid var(--color-border);
-    border-radius: 6px;
+    border-radius: 0;
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -158,18 +158,14 @@
     border-right: 1px solid var(--color-border);
   }
 
-  .config-button:first-child {
-    border-top-right-radius: 0;
-    border-bottom-right-radius: 0;
+  .config-button:first-of-type {
+    border-top-left-radius: 6px !important;
+    border-bottom-left-radius: 6px !important;
   }
 
   .config-button:last-child {
-    border-top-left-radius: 0;
-    border-bottom-left-radius: 0;
-  }
-
-  .config-button:not(:first-child):not(:last-child) {
-    border-radius: 0;
+    border-top-right-radius: 6px !important;
+    border-bottom-right-radius: 6px !important;
   }
 
   .config-button:hover {
