@@ -238,9 +238,9 @@ async def serve_index():
 
 
 # Serve plugin assets
-@webapp.route("/plugins/<plugin_id>/<path:asset_path>", methods=["GET"])
+@webapp.route("/plugins/<plugin_name>/<path:asset_path>", methods=["GET"])
 @requires_auth
-async def serve_plugin_asset(plugin_id, asset_path):
+async def serve_plugin_asset(plugin_name, asset_path):
     """
     Serve static assets from plugin directories.
     Resolves using the plugin system (with overrides).
@@ -249,21 +249,21 @@ async def serve_plugin_asset(plugin_id, asset_path):
     from flask import send_file
     
     # Use the new find_plugin helper
-    plugin = plugins.find_plugin(plugin_id)
-    if not plugin:
+    plugin_dir = plugins.find_plugin_dir(plugin_name)
+    if not plugin_dir:
         return Response("Plugin not found", 404)
     
     # Resolve the plugin asset path with security checks
     try:
         # Construct path using plugin root
-        asset_file = (plugin.path / asset_path).resolve()
-        plugin_root = plugin.path.resolve()
+        asset_file = files.get_abs_path(plugin_dir, asset_path)
+        plugin_root = plugin_dir
         
         # Security: ensure the resolved path is within the plugin directory
         if not files.is_in_dir(str(asset_file), str(plugin_root)):
             return Response("Access denied", 403)
             
-        if not asset_file.is_file():
+        if not files.is_file(asset_file):
             return Response("Asset not found", 404)
             
         return send_file(str(asset_file))
@@ -507,7 +507,7 @@ def run():
         plugin_handlers = load_classes_from_folder(str(api_path), "*.py", ApiHandler)
         for handler in plugin_handlers:
             # prefixed route for explicit namespacing
-            register_api_handler(webapp, handler, url_prefix=f"/api/plugins/{plugin.id}")
+            register_api_handler(webapp, handler, url_prefix=f"/api/plugins/{plugin.name}")
 
     handlers_by_namespace = _build_websocket_handlers_by_namespace(socketio_server, lock)
     configure_websocket_namespaces(
