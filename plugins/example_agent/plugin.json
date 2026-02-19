@@ -1,0 +1,5 @@
+{
+  "description": "Example Agent Plugin",
+  "per_project_config": true,
+  "per_agent_config": false
+}

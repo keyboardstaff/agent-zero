@@ -20,8 +20,8 @@
       </button>
 
       <!-- Scheduler -->
-      <button class="config-button" id="scheduler" @click="openModal('modals/scheduler/scheduler-modal.html')" title="Scheduler">
-        <span class="material-symbols-outlined">schedule</span>
+      <button class="config-button" id="plugins" @click="openModal('components/plugins/list/plugin-list.html')" title="Plugins">
+        <span class="material-symbols-outlined">extension</span>
       </button>
 
       <!-- Settings -->
@@ -56,7 +56,7 @@
         <span>Projects</span>
       </button>
             
-      <button class="dropdown-item" @click="openModal('modals/scheduler/scheduler-modal.html'); dropdownOpen = false">
+      <button class="dropdown-item" @click="openModal('components/scheduler/scheduler-modal.html'); dropdownOpen = false">
         <span class="material-symbols-outlined">schedule</span>
         <span>Scheduler</span>
       </button>

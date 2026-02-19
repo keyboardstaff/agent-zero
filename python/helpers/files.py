@@ -216,6 +216,13 @@ def read_file(relative_path: str, encoding="utf-8"):
     with open(absolute_path, "r", encoding=encoding) as f:
         return f.read()
 
+def read_file_json(relative_path: str, encoding="utf-8"):
+    # Try to get the absolute path for the file from the original directory or backup directories
+    absolute_path = get_abs_path(relative_path)
+
+    # Read the file content
+    with open(absolute_path, "r", encoding=encoding) as f:
+        return json.load(f)
 
 def read_file_bin(relative_path: str):
     # Try to get the absolute path for the file from the original directory or backup directories

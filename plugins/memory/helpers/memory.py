@@ -486,9 +486,9 @@ def reload():
 def abs_db_dir(memory_subdir: str) -> str:
     # patch for projects, this way we don't need to re-work the structure of memory subdirs
     if memory_subdir.startswith("projects/"):
-        from python.helpers.projects import get_project_meta_folder
+        from python.helpers.projects import get_project_meta
 
-        return files.get_abs_path(get_project_meta_folder(memory_subdir[9:]), "memory")
+        return files.get_abs_path(get_project_meta(memory_subdir[9:]), "memory")
     # standard subdirs
     return files.get_abs_path("usr/memory", memory_subdir)
 
@@ -496,10 +496,10 @@ def abs_db_dir(memory_subdir: str) -> str:
 def abs_knowledge_dir(knowledge_subdir: str, *sub_dirs: str) -> str:
     # patch for projects, this way we don't need to re-work the structure of knowledge subdirs
     if knowledge_subdir.startswith("projects/"):
-        from python.helpers.projects import get_project_meta_folder
+        from python.helpers.projects import get_project_meta
 
         return files.get_abs_path(
-            get_project_meta_folder(knowledge_subdir[9:]), "knowledge", *sub_dirs
+            get_project_meta(knowledge_subdir[9:]), "knowledge", *sub_dirs
         )
     # standard subdirs
     if knowledge_subdir == "default":
@@ -536,7 +536,7 @@ def get_context_memory_subdir(context: AgentContext) -> str:
 def get_existing_memory_subdirs() -> list[str]:
     try:
         from python.helpers.projects import (
-            get_project_meta_folder,
+            get_project_meta,
             get_projects_parent_folder,
         )
 
@@ -546,7 +546,7 @@ def get_existing_memory_subdirs() -> list[str]:
         project_subdirs = files.get_subdirectories(get_projects_parent_folder())
         for project_subdir in project_subdirs:
             if files.exists(
-                get_project_meta_folder(project_subdir), "memory", "index.faiss"
+                get_project_meta(project_subdir), "memory", "index.faiss"
             ):
                 subdirs.append(f"projects/{project_subdir}")
 
@@ -564,7 +564,7 @@ def get_knowledge_subdirs_by_memory_subdir(
     memory_subdir: str, default: list[str]
 ) -> list[str]:
     if memory_subdir.startswith("projects/"):
-        from python.helpers.projects import get_project_meta_folder
+        from python.helpers.projects import get_project_meta
 
-        default.append(get_project_meta_folder(memory_subdir[9:], "knowledge"))
+        default.append(get_project_meta(memory_subdir[9:], "knowledge"))
     return default

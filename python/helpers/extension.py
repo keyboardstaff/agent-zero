@@ -33,7 +33,7 @@ async def call_extensions(
     paths = subagents.get_paths(agent, "extensions", extension_point, default_root="python")
 
     # Add plugin backend extension paths (plugins/*/extensions/python/{extension_point})
-    plugin_paths = plugins.get_plugin_paths("extensions", "python", extension_point)
+    plugin_paths = plugins.get_enabled_plugin_paths(agent, "extensions", "python", extension_point)
     paths.extend(p for p in plugin_paths if p not in paths)
 
     all_exts = [cls for path in paths for cls in _get_extensions(path)]

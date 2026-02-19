@@ -1,0 +1,5 @@
+{
+    "description": "Memory Plugin",
+    "per_project_config": true,
+    "per_agent_config": true
+}

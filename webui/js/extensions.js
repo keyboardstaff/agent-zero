@@ -1,8 +1,7 @@
 import * as api from "./api.js";
 
 /**
- * @typedef {Object} WebuiExtension
- * @property {string} path
+ * @typedef {string} WebuiExtension
  */
 
 
@@ -62,9 +61,9 @@ export async function loadJsExtensions(extensionPoint) {
     });
     /** @type {JsExtensionImport[]} */
     const imports = await Promise.all(
-      response.extensions.map(async extension => ({
-        path: extension.path,
-        module: await import(normalizePath(extension.path))
+      response.extensions.map(async (path) => ({
+        path,
+        module: await import(normalizePath(path))
       }))
     );
     jsExtensionsCache.set(extensionPoint, imports);
@@ -134,7 +133,7 @@ export async function importHtmlExtensions(extensionPoint, targetElement) {
     });
     let combinedHTML = "";
     for (const extension of response.extensions) {
-      const path = normalizePath(extension.path);
+      const path = normalizePath(extension);
       combinedHTML += `<x-component path="${path}"></x-component>`;
     }
     htmlExtensionsCache.set(extensionPoint, combinedHTML);

@@ -8,8 +8,10 @@ from functools import wraps
 import threading
 import asyncio
 
+from pathlib import Path
 import urllib.request
 import urllib.error
+from regex.regex import F
 import uvicorn
 from flask import Flask, request, Response, session, redirect, url_for, render_template_string
 from werkzeug.wrappers.response import Response as BaseResponse
@@ -240,7 +242,16 @@ async def serve_index():
 # Serve plugin assets
 @webapp.route("/plugins/<plugin_name>/<path:asset_path>", methods=["GET"])
 @requires_auth
+async def serve_builtin_plugin_asset(plugin_name, asset_path):
+    return await _serve_plugin_asset(plugin_name, asset_path)
+
+@webapp.route("/usr/plugins/<plugin_name>/<path:asset_path>", methods=["GET"])
+@requires_auth
 async def serve_plugin_asset(plugin_name, asset_path):
+    return await _serve_plugin_asset(plugin_name, asset_path)
+
+
+async def _serve_plugin_asset(plugin_name, asset_path):
     """
     Serve static assets from plugin directories.
     Resolves using the plugin system (with overrides).
@@ -257,10 +268,11 @@ async def serve_plugin_asset(plugin_name, asset_path):
     try:
         # Construct path using plugin root
         asset_file = files.get_abs_path(plugin_dir, asset_path)
-        plugin_root = plugin_dir
+        webui_dir = files.get_abs_path(plugin_dir, "webui")
+        webui_extensions_dir = files.get_abs_path(plugin_dir, "extensions/webui")
         
-        # Security: ensure the resolved path is within the plugin directory
-        if not files.is_in_dir(str(asset_file), str(plugin_root)):
+        # Security: ensure the resolved path is within the plugin webui directory
+        if not files.is_in_dir(str(asset_file), str(webui_dir)) and not files.is_in_dir(str(asset_file), str(webui_extensions_dir)):
             return Response("Access denied", 403)
             
         if not files.is_file(asset_file):
@@ -499,8 +511,8 @@ def run():
     # Load API handlers from plugins (prefixed with /plugins/{plugin_id}/)
     from python.helpers import plugins
 
-    for plugin in plugins.list_plugins():
-        api_path = plugin.path / "api"
+    for plugin in plugins.get_enhanced_plugins_list():
+        api_path = Path(plugin.path) / "api"
         if not api_path.exists() or not api_path.is_dir():
             continue
 
