@@ -18,6 +18,7 @@ _META_TARGET_RE = re.compile(
 
 META_FILE_NAME = "plugin.json"
 CONFIG_FILE_NAME = "config.json"
+CONFIG_DEFAULT_FILE_NAME = "config.default.json"
 DISABLED_FILE_NAME = ".disabled"
 ENABLED_FILE_NAME = ".enabled"
 
@@ -140,7 +141,8 @@ def get_plugin_paths(*subpaths: str) -> List[str]:
         )
     return paths
 
-def get_enabled_plugin_paths(agent:Agent|None, *subpaths: str) -> List[str]:
+
+def get_enabled_plugin_paths(agent: Agent | None, *subpaths: str) -> List[str]:
     enabled = get_enabled_plugins(agent)
     paths: list[str] = []
 
@@ -167,7 +169,7 @@ def get_enabled_plugins(agent: Agent | None):
 
     if agent:
         from python.helpers import subagents
-        
+
     for plugin in plugins:
         # plugins are toggled via .enabled / .disabled files
         # every plugin is on by default, unless disabled in usr dir
@@ -175,29 +177,31 @@ def get_enabled_plugins(agent: Agent | None):
 
         if agent:
             agent_paths = subagents.get_paths(
-                    agent,
-                    files.PLUGINS_DIR,
-                    plugin,
-                    must_exist_completely=True,
-                    include_default=False,
-                    include_user=True,
-                    include_plugins=False,
-                    include_project=True
-                )
+                agent,
+                files.PLUGINS_DIR,
+                plugin,
+                must_exist_completely=True,
+                include_default=False,
+                include_user=True,
+                include_plugins=False,
+                include_project=True,
+            )
 
             # go through agent paths in reverse order and determine the state
             for agent_path in reversed(agent_paths):
                 if enabled:
-                    enabled = not files.exists(files.get_abs_path(agent_path, DISABLED_FILE_NAME))
+                    enabled = not files.exists(
+                        files.get_abs_path(agent_path, DISABLED_FILE_NAME)
+                    )
                 else:
-                    enabled = files.exists(files.get_abs_path(agent_path, ENABLED_FILE_NAME))
-
+                    enabled = files.exists(
+                        files.get_abs_path(agent_path, ENABLED_FILE_NAME)
+                    )
 
         if enabled:
             active.append(plugin)
-    
-    return active
 
+    return active
 
 
 def get_webui_extensions(extension_point: str, filters: List[str] | None = None):
@@ -213,9 +217,22 @@ def get_webui_extensions(extension_point: str, filters: List[str] | None = None)
     return entries
 
 
-def get_plugin_config(plugin_name: str, agent: Agent | None):
-    file_path = find_plugin_asset(plugin_name, CONFIG_FILE_NAME, agent=agent)
-    if file_path:
+def get_plugin_config(plugin_name: str, agent: Agent | None, project_name:str|None=None, agent_profile:str|None=None):
+    
+    if project_name is None and agent is not None:
+        from python.helpers import projects
+        project_name = projects.get_context_project_name(agent.context)
+    if agent_profile is None and agent is not None:
+        agent_profile = agent.config.profile
+    
+    # find config.json in all possible places
+    file_path = find_plugin_asset(plugin_name, CONFIG_FILE_NAME, project_name=project_name, agent_profile=agent_profile)
+    # use default config if not found
+    if not file_path:
+        file_path = files.get_abs_path(
+            find_plugin_dir(plugin_name), CONFIG_DEFAULT_FILE_NAME
+        )
+    if file_path and files.exists(file_path):
         return json.loads(files.read_file(file_path))
     return None
 
@@ -230,73 +247,108 @@ def save_plugin_config(
         files.write_file(file_path, json.dumps(settings))
 
 
-def find_plugin_asset(plugin_name: str, *subpaths: str, agent: Agent | None = None):
-    project_name = ""
+def find_plugin_asset(plugin_name: str, *subpaths: str, project_name="", agent_profile=""):
+    result = find_plugin_assets(
+        *subpaths,
+        plugin_name=plugin_name,
+        project_name=project_name,
+        agent_profile=agent_profile,
+        only_first=True
+    )
+    return result[0]["path"] if result else None
 
-    if agent:
-        profile_name = agent.config.profile if agent and agent.config.profile else ""
 
-        from python.helpers import projects
+def find_plugin_assets(
+    *subpaths: str,
+    plugin_name: str = "*",
+    project_name: str = "*",
+    agent_profile: str = "*",
+    only_first: bool = False,
+) -> list[dict]:
+    from python.helpers import projects, subagents
 
-        project_name = projects.get_context_project_name(agent.context) or ""
+    results: list[dict] = []
 
-        if project_name and profile_name:
-            # project/.a0proj/agents/<profile>/plugins/<plugin_name>/...
-            project_agent_file = projects.get_project_meta(
+    def _collect(path: str, proj: str, profile: str) -> bool:
+        matched_paths = (
+            files.find_existing_paths_by_pattern(path)
+            if "*" in path
+            else ([path] if files.exists(path) else [])
+        )
+        for matched in matched_paths:
+            results.append(
+                {"project_name": proj, "agent_profile": profile, "path": matched}
+            )
+            if only_first:
+                return True
+
+    # project/.a0proj/agents/<profile>/plugins/<plugin_name>/...
+    if project_name:
+        if agent_profile:
+            path = projects.get_project_meta(
                 project_name,
                 files.AGENTS_DIR,
-                profile_name,
+                agent_profile,
                 files.PLUGINS_DIR,
                 plugin_name,
                 *subpaths,
             )
-            if files.exists(project_agent_file):
-                return project_agent_file
-
-        if project_name:
+            if _collect(path, project_name, agent_profile):
+                return results
+        else:
             # project/.a0proj/plugins/<plugin_name>/...
-            project_file = projects.get_project_meta(
+            path = projects.get_project_meta(
                 project_name, files.PLUGINS_DIR, plugin_name, *subpaths
             )
-            if files.exists(project_file):
-                return project_file
+            if _collect(path, project_name, ""):
+                return results
 
-        if profile_name:
-            from python.helpers import subagents
+    # usr/agents/<profile>/plugins/<plugin_name>/...
+    if agent_profile:
+        path = files.get_abs_path(
+            subagents.USER_AGENTS_DIR,
+            agent_profile,
+            files.PLUGINS_DIR,
+            plugin_name,
+            *subpaths,
+        )
+        if _collect(path, "", agent_profile):
+            return results
 
-            # usr/agents/<profile>/plugins/<plugin_name>/...
+        # usr?/plugins/<any_plugin>/agents/<profile>/plugins/<plugin_name>/...
+        for plugin_base in get_enabled_plugin_paths(None):
             path = files.get_abs_path(
-                subagents.USER_AGENTS_DIR,
-                profile_name,
+                plugin_base,
+                files.AGENTS_DIR,
+                agent_profile,
                 files.PLUGINS_DIR,
                 plugin_name,
                 *subpaths,
             )
-            if files.exists(path):
-                return path
+            if _collect(path, "", agent_profile):
+                return results
 
-            # agents/<profile>/plugins/<plugin_name>/...
-            path = files.get_abs_path(
-                subagents.DEFAULT_AGENTS_DIR,
-                profile_name,
-                files.PLUGINS_DIR,
-                plugin_name,
-                *subpaths,
-            )
-            if files.exists(path):
-                return path
+        # agents/<profile>/plugins/<plugin_name>/...
+        path = files.get_abs_path(
+            subagents.DEFAULT_AGENTS_DIR,
+            agent_profile,
+            files.PLUGINS_DIR,
+            plugin_name,
+            *subpaths,
+        )
+        if _collect(path, "", agent_profile):
+            return results
 
     # usr/plugins/<plugin_name>/...
     path = files.get_abs_path(files.USER_DIR, files.PLUGINS_DIR, plugin_name, *subpaths)
-    if files.exists(path):
-        return path
+    if _collect(path, "", ""):
+        return results
 
     # plugins/<plugin_name>/...
     path = files.get_abs_path(files.PLUGINS_DIR, plugin_name, *subpaths)
-    if files.exists(path):
-        return path
+    _collect(path, "", "")
 
-    return None
+    return results
 
 
 def determine_plugin_asset_path(

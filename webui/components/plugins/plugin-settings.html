@@ -42,7 +42,16 @@
                             </select>
                         </label>
 
+                        <button type="button" class="button plugin-settings-toolbar-button" @click="$store.pluginSettings.openConfigListModal()">
+                            <span class="icon material-symbols-outlined">list</span>
+                        </button>
+
                     </div>
+                </div>
+
+                <div x-show="$store.pluginSettings.scopeMismatchMessage" class="plugin-settings-scope-info">
+                    <span class="material-symbols-outlined">info</span>
+                    <span x-text="$store.pluginSettings.scopeMismatchMessage"></span>
                 </div>
                 </div>
 
@@ -97,9 +106,15 @@
             display: flex;
             align-items: center;
             gap: 0.5rem;
-            flex: 1 1 18rem;
+            flex: 0 1 18rem;
             min-width: 12rem;
             margin: 0;
+        }
+
+        .plugin-settings-toolbar-button {
+            flex: 0 0 auto;
+            padding: 0.5rem 0.75rem;
+            height: 2.5rem;
         }
 
         .plugin-settings-toolbar-label {
@@ -111,6 +126,15 @@
         .plugin-settings-toolbar-item select {
             flex: 1 1 auto;
             min-width: 0;
+        }
+
+        .plugin-settings-scope-info {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.5rem;
+            padding: 0 1rem 1rem 1rem;
+            color: var(--color-text-secondary);
+            font-size: var(--font-size-small);
         }
 
         @media (max-width: 640px) {

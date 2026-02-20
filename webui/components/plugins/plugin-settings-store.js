@@ -16,6 +16,75 @@ const model = {
     // plugin settings data (plugins bind their fields here)
     settings: {},
 
+    // where the settings were actually loaded from
+    loadedPath: "",
+    loadedProjectName: "",
+    loadedAgentProfile: "",
+
+    projectLabel(key) {
+        if (!key) return "Global";
+        const found = (this.projects || []).find((p) => p.key === key);
+        return found?.label || key;
+    },
+
+    agentProfileLabel(key) {
+        if (!key) return "All profiles";
+        const found = (this.agentProfiles || []).find((p) => p.key === key);
+        return found?.label || key;
+    },
+
+    get scopeMismatchMessage() {
+        const selectedProject = this.projectName || "";
+        const selectedProfile = this.agentProfileKey || "";
+        const loadedProject = this.loadedProjectName || "";
+        const loadedProfile = this.loadedAgentProfile || "";
+
+        if (!this.loadedPath) return "";
+        if (selectedProject === loadedProject && selectedProfile === loadedProfile) return "";
+
+        return `Settings do not yet exist for this combination, settings from ${this.projectLabel(loadedProject)}, ${this.agentProfileLabel(loadedProfile)} (${this.loadedPath}) will apply.`;
+    },
+
+    configs: [],
+    isListingConfigs: false,
+    configsError: null,
+
+    async openConfigListModal() {
+        await window.openModal?.("/components/plugins/plugin-configs.html");
+    },
+
+    async loadConfigList() {
+        if (!this.pluginName) return;
+        this.isListingConfigs = true;
+        this.configsError = null;
+        try {
+            // TODO: list existing plugin config scopes without API calls
+            this.configs = [];
+        } catch (e) {
+            this.configsError = e?.message || "Failed to load configurations";
+            this.configs = [];
+        } finally {
+            this.isListingConfigs = false;
+        }
+    },
+
+    async switchToConfig(projectName, agentProfile) {
+        this.projectName = projectName || "";
+        this.agentProfileKey = agentProfile || "";
+        await this.loadSettings();
+        await window.closeModal?.();
+    },
+
+    async deleteConfig(projectName, agentProfile) {
+        if (!this.pluginName) return;
+        try {
+            // TODO: delete existing plugin config scope without API calls
+            this.configsError = "Delete is not implemented yet";
+        } catch (e) {
+            this.configsError = e?.message || "Delete failed";
+        }
+    },
+
     // 'plugin' = save to plugin settings API
     // 'core'   = save via $store.settings.saveSettings() (for plugins that surface core settings)
     saveMode: 'plugin',
@@ -33,6 +102,9 @@ const model = {
         this.saveMode = 'plugin';
         this.projectName = "";
         this.agentProfileKey = "";
+        this.loadedPath = "";
+        this.loadedProjectName = "";
+        this.loadedAgentProfile = "";
         await Promise.all([this.loadProjects(), this.loadAgentProfiles()]);
         await this.loadSettings();
     },
@@ -87,6 +159,9 @@ const model = {
             });
             const result = await response.json().catch(() => ({}));
             this.settings = result.ok ? (result.data || {}) : {};
+            this.loadedPath = result.loaded_path || "";
+            this.loadedProjectName = result.loaded_project_name || "";
+            this.loadedAgentProfile = result.loaded_agent_profile || "";
             if (!result.ok) this.error = result.error || "Failed to load settings";
         } catch (e) {
             this.error = e?.message || "Failed to load settings";
@@ -138,6 +213,9 @@ const model = {
         this.pluginName = null;
         this.pluginMeta = null;
         this.settings = {};
+        this.loadedPath = "";
+        this.loadedProjectName = "";
+        this.loadedAgentProfile = "";
         this.error = null;
     },
 

@@ -12,30 +12,44 @@ class Plugins(ApiHandler):
         action = input.get("action", "get_config")
 
         # Accept legacy aliases during migration.
-        if action in {"get_config", "get_settings"}:
+        if action == "get_config":
             plugin_name = input.get("plugin_name", "")
             project_name = input.get("project_name", "")
             agent_profile = input.get("agent_profile", "")
             if not plugin_name:
                 return Response(status=400, response="Missing plugin_name")
 
-            settings = None
-            if project_name or agent_profile:
-                file_path = plugins.determine_plugin_asset_path(
-                    plugin_name,
-                    project_name,
-                    agent_profile,
-                    plugins.CONFIG_FILE_NAME,
+            result = plugins.find_plugin_assets(
+                plugins.CONFIG_FILE_NAME,
+                plugin_name=plugin_name,
+                project_name=project_name,
+                agent_profile=agent_profile,
+                only_first=True,
+            )
+            if result:
+                entry = result[0]
+                path = entry.get("path", "")
+                settings = files.read_file_json(path) if path else {}
+                loaded_project_name = entry.get("project_name", "")
+                loaded_agent_profile = entry.get("agent_profile", "")
+            else:
+                settings = plugins.get_plugin_config(plugin_name, agent=None) or {}
+                default_path = files.get_abs_path(
+                    plugins.find_plugin_dir(plugin_name), plugins.CONFIG_DEFAULT_FILE_NAME
                 )
-                if files.exists(file_path):
-                    settings = files.read_file_json(file_path)
+                path = default_path if files.exists(default_path) else ""
+                loaded_project_name = ""
+                loaded_agent_profile = ""
 
-            if settings is None:
-                settings = plugins.get_plugin_config(plugin_name, agent=None)
+            return {
+                "ok": True,
+                "loaded_path": path,
+                "loaded_project_name": loaded_project_name,
+                "loaded_agent_profile": loaded_agent_profile,
+                "data": settings,
+            }
 
-            return {"ok": True, "data": settings or {}}
-
-        if action in {"save_config", "save_settings"}:
+        if action == "save_config":
             plugin_name = input.get("plugin_name", "")
             project_name = input.get("project_name", "")
             agent_profile = input.get("agent_profile", "")
