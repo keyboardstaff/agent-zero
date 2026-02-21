@@ -515,21 +515,24 @@ def get_memory_subdir_abs(agent: Agent) -> str:
 
 
 def get_agent_memory_subdir(agent: Agent) -> str:
-    # if project is active, use project memory subdir
-    return get_context_memory_subdir(agent.context)
+    config = plugins.get_plugin_config("memory", agent)
 
-
-def get_context_memory_subdir(context: AgentContext) -> str:
-    config = plugins.get_plugin_config("memory")
+    if not config:
+        return "default"
     
     # Check if project isolation is enabled and we are in a project
     if config.get("project_memory_isolation", True):
-        project_name = projects.get_context_project_name(context)
+        project_name = projects.get_context_project_name(agent.context)
         if project_name:
             return "projects/" + project_name
 
     # Fallback to configured subdir or default
     return config.get("agent_memory_subdir", "") or "default"
+
+
+def get_context_memory_subdir(context: AgentContext) -> str:
+    agent = context.get_agent()
+    return get_agent_memory_subdir(agent)
 
 
 def get_existing_memory_subdirs() -> list[str]:
