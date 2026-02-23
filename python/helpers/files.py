@@ -3,19 +3,16 @@ from fnmatch import fnmatch
 import json
 from ntpath import isabs
 import os
-import sys
 import re
 import base64
 import shutil
 import tempfile
 from typing import Any, Literal
 import zipfile
-import importlib
-import importlib.util
-import inspect
 import glob
 import mimetypes
 from simpleeval import simple_eval
+from python.helpers import yaml
 
 AGENTS_DIR = "agents"
 PLUGINS_DIR = "plugins"
@@ -223,6 +220,12 @@ def read_file_json(relative_path: str, encoding="utf-8"):
     # Read the file content
     with open(absolute_path, "r", encoding=encoding) as f:
         return json.load(f)
+
+def read_file_yaml(relative_path: str, encoding="utf-8"):
+    absolute_path = get_abs_path(relative_path)
+
+    with open(absolute_path, "r", encoding=encoding) as f:
+        return yaml.loads(f.read())
 
 def read_file_bin(relative_path: str):
     # Try to get the absolute path for the file from the original directory or backup directories
