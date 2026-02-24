@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import re, json, glob
 from pathlib import Path
-from typing import Any, Dict, List, Literal, Optional, TYPE_CHECKING, TypedDict
+from typing import Any, Dict, Iterator, List, Literal, Optional, TYPE_CHECKING, TypedDict
 
-from python.helpers import files, print_style
+from python.helpers import files, print_style, yaml as yaml_helper
 from pydantic import BaseModel, Field
 
 if TYPE_CHECKING:
@@ -22,9 +22,9 @@ class PluginAssetFile(TypedDict):
     project_name: str
     agent_profile: str
 
-META_FILE_NAME = "plugin.json"
+META_FILE_NAME = "plugin.yaml"
 CONFIG_FILE_NAME = "config.json"
-CONFIG_DEFAULT_FILE_NAME = "config.default.json"
+CONFIG_DEFAULT_FILE_NAME = "default_config.yaml"
 DISABLED_FILE_NAME = ".toggle-0"
 ENABLED_FILE_NAME = ".toggle-1"
 TOGGLE_FILE_PATTERN = ".toggle-[01]"
@@ -58,11 +58,11 @@ class PluginListItem(BaseModel):
     toggle_state: ToggleState = "disabled"
 
 
-def get_plugin_roots() -> List[str]:
+def get_plugin_roots(plugin_name:str="") -> List[str]:
     """Plugin root directories, ordered by priority (user first)."""
     return [
-        files.get_abs_path(files.USER_DIR, files.PLUGINS_DIR),
-        files.get_abs_path(files.PLUGINS_DIR),
+        files.get_abs_path(files.USER_DIR, files.PLUGINS_DIR, plugin_name),
+        files.get_abs_path(files.PLUGINS_DIR, plugin_name),
     ]
 
 
@@ -93,8 +93,11 @@ def get_enhanced_plugins_list(
             try:
                 if not d.is_dir() or d.name.startswith("."):
                     continue
+                meta_file = str(d / META_FILE_NAME)
+                if not files.exists(meta_file):
+                    continue
                 meta = PluginMetadata.model_validate(
-                    files.read_file_json(str(d / META_FILE_NAME))
+                    files.read_file_yaml(meta_file)
                 )
                 has_main_screen = files.exists(str(d / "webui" / "main.html"))
                 has_config_screen = files.exists(str(d / "webui" / "config.html"))
@@ -120,8 +123,9 @@ def get_enhanced_plugins_list(
                         toggle_state=toggle_state,
                     )
                 )
-            except:
-                pass
+            except Exception as e:
+                print_style.PrintStyle.error(f"Failed to load plugin {d.name}: {e}")
+                continue
 
     if custom:
         load_plugins(files.get_abs_path(files.USER_DIR, files.PLUGINS_DIR), True)
@@ -135,7 +139,7 @@ def get_plugin_meta(plugin_name: str):
     if not plugin_dir:
         return None
     return PluginMetadata.model_validate(
-        files.read_file_json(files.get_abs_path(plugin_dir, META_FILE_NAME))
+        files.read_file_yaml(files.get_abs_path(plugin_dir, META_FILE_NAME))
     )
 
 
@@ -200,6 +204,10 @@ def get_enabled_plugins(agent: Agent | None):
         # every plugin is on by default, unless disabled in usr dir
         enabled = True
 
+        # root plugin paths
+        plugin_paths = get_plugin_roots(plugin)
+
+        # + agent paths
         if agent:
             from python.helpers import subagents
 
@@ -209,50 +217,51 @@ def get_enabled_plugins(agent: Agent | None):
                 plugin,
                 must_exist_completely=True,
                 include_default=False,
-                include_user=True,
+                include_user=False,
                 include_plugins=False,
                 include_project=True,
             )
+            plugin_paths = agent_paths + plugin_paths
 
-            # go through agent paths in forward order and determine the state
-            # subagents.get_paths returns [default, user, project] (priority low to high)
-            # we want high priority to override low priority.
-            for agent_path in agent_paths:
-                if enabled:
-                    enabled = not files.exists(
-                        files.get_abs_path(agent_path, DISABLED_FILE_NAME)
-                    )
-                else:
-                    enabled = files.exists(
-                        files.get_abs_path(agent_path, ENABLED_FILE_NAME)
-                    )
+        # go through paths in reverse order and determine the state
+        enabled = determined_toggle_from_paths(enabled, reversed(plugin_paths))
 
         if enabled:
             active.append(plugin)
 
     return active
 
+def determined_toggle_from_paths(default:bool, paths:Iterator[str]):
+    enabled = default
+    for plugin_path in paths:
+        if enabled:
+            enabled = not files.exists(
+                files.get_abs_path(plugin_path, DISABLED_FILE_NAME)
+            )
+        else:
+            enabled = files.exists(
+                files.get_abs_path(plugin_path, ENABLED_FILE_NAME)
+            )
+    return enabled
 
 def get_toggle_state(plugin_name: str) -> ToggleState:
     meta = get_plugin_meta(plugin_name)
     if not meta:
         return "disabled"
+    if meta.always_enabled:
+        return "enabled"
 
-    state = "enabled"
+    # root plugin paths
+    plugin_paths = get_plugin_roots(plugin_name)
+    state = "enabled" if determined_toggle_from_paths(True, reversed(plugin_paths)) else "disabled"
 
-    # toggles inside of user directory (there should be only one, but let's make it work in any case)
-    usr_toggles = files.find_existing_paths_by_pattern(
-        files.get_abs_path(
-            files.USER_DIR, files.PLUGINS_DIR, plugin_name, TOGGLE_FILE_PATTERN
-        )
-    )
-    for toggle in usr_toggles:
-        if toggle.endswith(ENABLED_FILE_NAME):
-            state = "enabled"
-        if toggle.endswith(DISABLED_FILE_NAME):
-            state = "disabled"
+    # global toggles
+    usr_toggles = [
+        files.find_existing_paths_by_pattern(files.get_abs_path(files.PLUGINS_DIR, plugin_name, TOGGLE_FILE_PATTERN)),
+        files.find_existing_paths_by_pattern(files.get_abs_path(files.USER_DIR, files.PLUGINS_DIR, plugin_name, TOGGLE_FILE_PATTERN))
+    ]
 
-    # if there are more toggles in project/agent directories, return advanced
+    # additional toggles in project/agent directories, return advanced
     if meta.per_agent_config or meta.per_project_config:
         configs = find_plugin_assets(
             TOGGLE_FILE_PATTERN,
@@ -335,7 +344,9 @@ def get_plugin_config(
             find_plugin_dir(plugin_name), CONFIG_DEFAULT_FILE_NAME
         )
     if file_path and files.exists(file_path):
-        return json.loads(files.read_file(file_path))
+        return (json.loads if file_path.lower().endswith(".json") else yaml_helper.loads)(
+            files.read_file(file_path)
+        )
     return None
 
 

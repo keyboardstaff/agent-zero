@@ -428,11 +428,8 @@ def write_file(relative_path: str, content: str, encoding: str = "utf-8"):
 
 def delete_file(relative_path: str):
     abs_path = get_abs_path(relative_path)
-    if os.path.exists(abs_path):
-        try:
-            os.remove(abs_path)
-        except OSError:
-            pass
+    if exists(abs_path):
+        os.remove(abs_path)
 
 def write_file_bin(relative_path: str, content: bytes):
     abs_path = get_abs_path(relative_path)
