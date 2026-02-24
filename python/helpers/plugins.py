@@ -53,6 +53,8 @@ class PluginListItem(BaseModel):
     is_custom: bool = False
     has_main_screen: bool = False
     has_config_screen: bool = False
+    has_readme: bool = False
+    has_license: bool = False
     toggle_state: ToggleState = "disabled"
 
 
@@ -96,6 +98,8 @@ def get_enhanced_plugins_list(
                 )
                 has_main_screen = files.exists(str(d / "webui" / "main.html"))
                 has_config_screen = files.exists(str(d / "webui" / "config.html"))
+                has_readme = files.exists(str(d / "README.md"))
+                has_license = files.exists(str(d / "LICENSE"))
                 toggle_state = get_toggle_state(d.name)
                 results.append(
                     PluginListItem(
@@ -111,6 +115,8 @@ def get_enhanced_plugins_list(
                         is_custom=is_custom,
                         has_main_screen=has_main_screen,
                         has_config_screen=has_config_screen,
+                        has_readme=has_readme,
+                        has_license=has_license,
                         toggle_state=toggle_state,
                     )
                 )

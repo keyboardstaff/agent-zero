@@ -79,6 +79,22 @@
                                             <span class="icon material-symbols-outlined">settings</span> Config
                                         </button>
                                     </template>
+                                    <template x-if="plugin.has_readme">
+                                        <button type="button"
+                                            class="button"
+                                            title="README"
+                                            @click="$store.pluginListStore.openPluginDoc(plugin, 'readme')">
+                                            <span class="icon material-symbols-outlined">description</span> README
+                                        </button>
+                                    </template>
+                                    <template x-if="plugin.has_license">
+                                        <button type="button"
+                                            class="button"
+                                            title="LICENSE"
+                                            @click="$store.pluginListStore.openPluginDoc(plugin, 'license')">
+                                            <span class="icon material-symbols-outlined">gavel</span> License
+                                        </button>
+                                    </template>
                                     <button type="button"
                                         class="button"
                                         title="Info"

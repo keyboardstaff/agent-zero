@@ -2,6 +2,7 @@ import { createStore } from "/js/AlpineStore.js";
 import * as api from "/js/api.js";
 import "/components/plugins/plugin-settings-store.js";
 import "/components/plugins/toggle/plugin-toggle-store.js";
+import "/components/modals/markdown/markdown-store.js";
 import {
   store as notificationStore,
   defaultPriority,
@@ -123,6 +124,23 @@ const model = {
     } catch (e) {
         showErrorNotification(e, "Failed to toggle plugin");
         this.loading = false;
+    }
+  },
+
+  async openPluginDoc(plugin, doc) {
+    try {
+      const response = await api.callJsonApi("plugins", {
+        action: "get_doc",
+        plugin_name: plugin.name,
+        doc,
+      });
+      if (response?.error) throw new Error(response.error);
+      const markdownModal = Alpine.store("markdownModal");
+      if (!markdownModal) throw new Error("Markdown modal store unavailable.");
+      markdownModal.open(response.filename, response.content);
+      window.openModal?.("components/modals/markdown/markdown-modal.html");
+    } catch (e) {
+      showErrorNotification(e, "Failed to open document");
     }
   },
 

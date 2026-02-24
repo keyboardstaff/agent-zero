@@ -132,4 +132,23 @@ class Plugins(ApiHandler):
             )
             return {"ok": True}
 
+        if action == "get_doc":
+            plugin_name = input.get("plugin_name", "")
+            doc = input.get("doc", "")  # "readme" or "license"
+            if not plugin_name:
+                return Response(status=400, response="Missing plugin_name")
+            if doc not in ("readme", "license"):
+                return Response(status=400, response="doc must be 'readme' or 'license'")
+
+            plugin_dir = plugins.find_plugin_dir(plugin_name)
+            if not plugin_dir:
+                return Response(status=404, response="Plugin not found")
+
+            filename = "README.md" if doc == "readme" else "LICENSE"
+            file_path = files.get_abs_path(plugin_dir, filename)
+            if not files.exists(file_path):
+                return Response(status=404, response=f"{filename} not found")
+
+            return {"ok": True, "content": files.read_file(file_path), "filename": filename}
+
         return Response(status=400, response=f"Unknown action: {action}")
