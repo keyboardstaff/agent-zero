@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import re, json
+import re, json, glob
 from pathlib import Path
 from typing import Any, Dict, Iterator, List, Literal, Optional, TYPE_CHECKING, TypedDict
 
@@ -31,7 +31,7 @@ TOGGLE_FILE_PATTERN = ".toggle-[01]"
 
 
 class PluginMetadata(BaseModel):
-    name: str = ""
+    title: str = ""
     description: str = ""
     version: str = ""
     settings_sections: List[str] = Field(default_factory=list)
@@ -49,6 +49,7 @@ class PluginListItem(BaseModel):
     settings_sections: List[str] = Field(default_factory=list)
     per_project_config: bool = False
     per_agent_config: bool = False
+    always_enabled: bool = False
     is_custom: bool = False
     has_main_screen: bool = False
     has_config_screen: bool = False
@@ -104,20 +105,23 @@ def get_enhanced_plugins_list(
                 has_readme = files.exists(str(d / "README.md"))
                 has_license = files.exists(str(d / "LICENSE"))
                 has_init_script = files.exists(str(d / "initialize.py"))
-                toggle_state = get_toggle_state(meta.name)
+                toggle_state = get_toggle_state(d.name)
                 results.append(
                     PluginListItem(
                         name=d.name,
                         path=str(d),
-                        display_name=meta.name or d.name,
+                        display_name=meta.title or d.name,
                         description=meta.description,
                         version=meta.version,
                         settings_sections=meta.settings_sections,
                         per_project_config=meta.per_project_config,
                         per_agent_config=meta.per_agent_config,
+                        always_enabled=meta.always_enabled,
                         is_custom=is_custom,
                         has_main_screen=has_main_screen,
                         has_config_screen=has_config_screen,
+                        has_readme=has_readme,
+                        has_license=has_license,
                         toggle_state=toggle_state,
                     )
                 )
@@ -268,9 +272,19 @@ def get_toggle_state(plugin_name: str) -> ToggleState:
             agent_profile="*" if meta.per_agent_config else "",
             only_first=False,
         )
-        if len(configs) > len(usr_toggles):
-            state = "advanced"
         
+        # Advanced if there are specific overrides (project or agent specific)
+        specific_overrides = [
+            c for c in configs 
+            if c.get("project_name") or c.get("agent_profile")
+        ]
+        
+        if len(specific_overrides) > 0:
+            state = "advanced"
+
+    if state != "advanced" and meta.always_enabled:
+        return "enabled"
+
     return state
 
 
@@ -280,11 +294,13 @@ def toggle_plugin(
     enabled_file = determine_plugin_asset_path(plugin_name, project_name, agent_profile, ENABLED_FILE_NAME)
     disabled_file = determine_plugin_asset_path(plugin_name, project_name, agent_profile, DISABLED_FILE_NAME)
 
+    # ensure clean state by deleting both potential files first
+    files.delete_file(enabled_file)
+    files.delete_file(disabled_file)
+
     if enabled:
-        files.delete_file(disabled_file)
         files.write_file(enabled_file, "")
     else:
-        files.delete_file(enabled_file)
         files.write_file(disabled_file, "")
 
 
@@ -371,9 +387,10 @@ def find_plugin_assets(
     results: list[PluginAssetFile] = []
 
     def _collect(path: str, proj: str, profile: str) -> bool:
+        is_glob = glob.has_magic(path)
         matched_paths = (
             files.find_existing_paths_by_pattern(path)
-            if "*" in path
+            if is_glob
             else ([path] if files.exists(path) else [])
         )
 
