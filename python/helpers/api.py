@@ -17,8 +17,7 @@ from python.helpers import files, cache
 ThreadLockType = Union[threading.Lock, threading.RLock]
 
 CACHE_AREA = "api_handlers(api)(plugins)"
-CACHE_ENABLED = False
-
+cache.toggle_area(CACHE_AREA, False) # cache off for now
 
 Input = dict
 Output = Union[Dict[str, Any], Response, TypedDict]  # type: ignore
@@ -210,10 +209,9 @@ def register_api_route(app: Flask, lock: ThreadLockType) -> None:
 
     async def _dispatch(path: str) -> BaseResponse:
         # Return cached wrapped handler if available
-        if CACHE_ENABLED:
-            cached = cache.get(CACHE_AREA, path)
-            if cached is not None:
-                return await cached()
+        cached = cache.get(CACHE_AREA, path)
+        if cached is not None:
+            return await cached()
 
         # Resolve file path for the handler
         # Try built-in api folder first, then plugin api folders
@@ -261,8 +259,7 @@ def register_api_route(app: Flask, lock: ThreadLockType) -> None:
         if handler_cls.requires_loopback():
             handler_fn = requires_loopback(handler_fn)
 
-        if CACHE_ENABLED:
-            cache.add(CACHE_AREA, path, handler_fn)
+        cache.add(CACHE_AREA, path, handler_fn)
         return await handler_fn()
 
     app.add_url_rule(

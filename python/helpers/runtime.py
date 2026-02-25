@@ -8,6 +8,9 @@ import asyncio
 import threading
 import queue
 import sys
+import nest_asyncio
+
+nest_asyncio.apply()
 
 T = TypeVar("T")
 R = TypeVar("R")

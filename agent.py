@@ -1,7 +1,4 @@
 import asyncio, random, string, threading
-import nest_asyncio
-
-nest_asyncio.apply()
 
 from collections import OrderedDict
 from dataclasses import dataclass, field

@@ -1,9 +1,10 @@
 from agent import AgentConfig
 import models
-from python.helpers import runtime, settings, defer
+from python.helpers import runtime, settings, defer, extension
 from python.helpers.print_style import PrintStyle
 
 
+@extension.extensible
 def initialize_agent(override_settings: dict | None = None):
     current_settings = settings.get_settings()
     if override_settings:
@@ -118,12 +119,14 @@ def initialize_agent(override_settings: dict | None = None):
     # return config object
     return config
 
+@extension.extensible
 def initialize_chats():
     from python.helpers import persist_chat
     async def initialize_chats_async():
         persist_chat.load_tmp_chats()
     return defer.DeferredTask().start_task(initialize_chats_async)
 
+@extension.extensible
 def initialize_mcp():
     set = settings.get_settings()
     async def initialize_mcp_async():
@@ -131,14 +134,17 @@ def initialize_mcp():
         return _initialize_mcp(set["mcp_servers"])
     return defer.DeferredTask().start_task(initialize_mcp_async)
 
+@extension.extensible
 def initialize_job_loop():
     from python.helpers.job_loop import run_loop
     return defer.DeferredTask("JobLoop").start_task(run_loop)
 
+@extension.extensible
 def initialize_preload():
     import preload
     return defer.DeferredTask().start_task(preload.preload)
 
+@extension.extensible
 def initialize_migration():
     from python.helpers import migration, dotenv
     # run migration

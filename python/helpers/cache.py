@@ -5,8 +5,22 @@ from typing import Any
 _lock = threading.RLock()
 _cache: dict[str, dict[str, Any]] = {}
 
+_enabled_global: bool = True
+_enabled_areas: dict[str, bool] = {}
+
+
+def toggle_global(enabled: bool) -> None:
+    global _enabled_global
+    _enabled_global = enabled
+
+
+def toggle_area(area: str, enabled: bool) -> None:
+    _enabled_areas[area] = enabled
+
 
 def add(area: str, key: str, data: Any) -> None:
+    if not _is_enabled(area):
+        return
     with _lock:
         if area not in _cache:
             _cache[area] = {}
@@ -14,11 +28,15 @@ def add(area: str, key: str, data: Any) -> None:
 
 
 def get(area: str, key: str, default: Any = None) -> Any:
+    if not _is_enabled(area):
+        return default
     with _lock:
         return _cache.get(area, {}).get(key, default)
 
 
 def remove(area: str, key: str) -> None:
+    if not _is_enabled(area):
+        return
     with _lock:
         if area in _cache:
             _cache[area].pop(key, None)
@@ -38,3 +56,9 @@ def clear(area: str) -> None:
 def clear_all() -> None:
     with _lock:
         _cache.clear()
+
+
+def _is_enabled(area: str) -> bool:
+    if not _enabled_global:
+        return False
+    return _enabled_areas.get(area, True)
