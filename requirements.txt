@@ -52,3 +52,4 @@ pywinpty==3.0.2; sys_platform == "win32"
 python-socketio>=5.14.2
 uvicorn>=0.38.0
 wsproto>=1.2.0
+yt-dlp>=2026.01.31
