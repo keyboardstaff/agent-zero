@@ -31,8 +31,8 @@ def extensible(func):
 
     The decorator derives two extension point names from the wrapped function:
 
-    - ``{func.__module__}.{func.__name__}-start``
-    - ``{func.__module__}.{func.__name__}-end``
+    - ``{func.__module__}_{func.__qualname__}_start`` with `.` replaced by `_`
+    - ``{func.__module__}_{func.__qualname__}_end`` with `.` replaced by `_`
 
     When the wrapped function is called, the decorator builds a mutable ``data``
     payload and passes it to both extension points via ``call_extensions``:
@@ -63,15 +63,15 @@ def extensible(func):
         from agent import Agent
 
         # prepare extension points data
-        module_name = getattr(func, "__module__", "")
-        qual_name = getattr(func, "__qualname__", "")
+        module_name = getattr(func, "__module__", "").replace(".", "_")
+        qual_name = getattr(func, "__qualname__", "").replace(".", "_")
 
         # skip if extension point cannot be determined
         if not module_name or not qual_name:
             return await func(*args, **kwargs)
 
-        start_point = f"{module_name}.{qual_name}-start"
-        end_point = f"{module_name}.{qual_name}-end"
+        start_point = f"{module_name}_{qual_name}_start"
+        end_point = f"{module_name}_{qual_name}_end"
 
         def _get_agent() -> "Agent|None":
             candidate = kwargs.get("agent")
@@ -92,7 +92,7 @@ def extensible(func):
             "args": args,
             "kwargs": kwargs,
             "result": _UNSET,
-            "exception": _UNSET,
+            "exception": None,
         }
 
         # call start extensions, these can modify inputs, produce output or exception
@@ -114,7 +114,6 @@ def extensible(func):
                 data["exception"] = e
 
         # call end extensions, these can modify outputs or exception
-        agent = _get_agent()
         await call_extensions(end_point, agent=agent, data=data)
 
         # if there's an exception, raise it
