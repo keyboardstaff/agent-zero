@@ -65,6 +65,7 @@ class InfectionChecker:
         self.reasoning_log = ""
         self.response_log = ""
         self.analysis_started = False
+        self._result_consumed = False
         self._clarify_count = 0
         self._check_msgs: list = []
         self._check_cot = ""
@@ -80,19 +81,27 @@ class InfectionChecker:
         if self.analysis_started:
             return None
         self.analysis_started = True
+        return self._create_check_task(agent)
+
+    def ensure_analysis(self, agent: "Agent") -> "asyncio.Task | None":
+        task = agent.get_data(DATA_KEY_TASK)
+        if task is not None:
+            return task
+        if self._result_consumed:
+            return None
+        self.analysis_started = True
+        task = self._create_check_task(agent)
+        if task is None:
+            self._result_consumed = True
+        return task
+
+    def _create_check_task(self, agent: "Agent") -> "asyncio.Task | None":
         snapshot = self._build_log()
         if not snapshot.strip():
             return None
         task = asyncio.create_task(self._run_check(agent, snapshot))
         agent.set_data(DATA_KEY_TASK, task)
         return task
-
-    def ensure_analysis(self, agent: "Agent") -> "asyncio.Task | None":
-        """Guarantee a check task exists. Called from tool_execute_before as a safety net."""
-        task = agent.get_data(DATA_KEY_TASK)
-        if task is not None:
-            return task
-        return self.start_analysis(agent)
 
     async def handle_result(self, agent: "Agent", log_item: "LogItem"):
         if agent.get_data(DATA_KEY_CLARIFIED):
@@ -119,9 +128,11 @@ class InfectionChecker:
         except Exception as e:
             log_item.update(heading="Infection check error", content=str(e))
             agent.set_data(DATA_KEY_TASK, None)
+            self._result_consumed = True
             return
 
         agent.set_data(DATA_KEY_TASK, None)
+        self._result_consumed = True
 
         if action == "ok":
             return
